@@ -1,99 +1,112 @@
 import MiniCalendar from "components/calendar/MiniCalendar";
-import WeeklyRevenue from "views/admin/default/components/WeeklyRevenue";
-import TotalSpent from "views/admin/default/components/TotalSpent";
-import PieChartCard from "views/admin/default/components/PieChartCard";
 import { IoMdHome } from "react-icons/io";
-import { IoDocuments } from "react-icons/io5";
-import { MdBarChart, MdDashboard } from "react-icons/md";
+import { IoDocuments, IoStatsChart } from "react-icons/io5";
+import { MdBarChart, MdDashboard, MdUpload, MdCheckCircle, MdError, MdPending } from "react-icons/md";
+import { FaFileAlt, FaChartLine, FaChartPie, FaChartBar } from "react-icons/fa";
 
 import { columnsDataCheck, columnsDataComplex } from "./variables/columnsData";
 
 import Widget from "views/rtl/default/components/Widget";
 import CheckTable from "views/rtl/default/components/CheckTable";
 import ComplexTable from "views/rtl/default/components/ComplexTable";
-import DailyTraffic from "views/rtl/default/components/DailyTraffic";
-import TaskCard from "views/rtl/default/components/TaskCard";
 import tableDataCheck from "./variables/tableDataCheck.json";
 import tableDataComplex from "./variables/tableDataComplex.json";
 
+// Import new chart components
+import FormProcessingChart from "../../admin/default/components/FormProcessingChart";
+import UploadTrendsChart from "../../admin/default/components/UploadTrendsChart";
+import DocumentTypeDistribution from "../../admin/default/components/DocumentTypeDistribution";
+import ProcessingStatusChart from "../../admin/default/components/ProcessingStatusChart";
+import RecentActivityChart from "../../admin/default/components/RecentActivityChart";
+
 const Dashboard = () => {
   return (
-    <div>
-      {/* Card widget */}
-
-      <div className="mt-3 grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-3 3xl:grid-cols-6">
+    <div className="space-y-8">
+      {/* Header Stats Cards */}
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
         <Widget
-          icon={<MdBarChart className="h-7 w-7" />}
-          title={"Earnings"}
-          subtitle={"$340.5"}
+          icon={<MdUpload className="h-8 w-8" />}
+          title={"Total Uploads"}
+          subtitle={"1,247"}
+          trend="+12.5%"
+          trendColor="green"
         />
         <Widget
-          icon={<IoDocuments className="h-6 w-6" />}
-          title={"Spend this month"}
-          subtitle={"$642.39"}
+          icon={<MdCheckCircle className="h-8 w-8" />}
+          title={"Processed"}
+          subtitle={"1,089"}
+          trend="+8.2%"
+          trendColor="green"
         />
         <Widget
-          icon={<MdBarChart className="h-7 w-7" />}
-          title={"Sales"}
-          subtitle={"$574.34"}
+          icon={<MdPending className="h-8 w-8" />}
+          title={"Pending"}
+          subtitle={"158"}
+          trend="-3.1%"
+          trendColor="red"
         />
         <Widget
-          icon={<MdDashboard className="h-6 w-6" />}
-          title={"Your Balance"}
-          subtitle={"$1,000"}
-        />
-        <Widget
-          icon={<MdBarChart className="h-7 w-7" />}
-          title={"New Tasks"}
-          subtitle={"145"}
-        />
-        <Widget
-          icon={<IoMdHome className="h-6 w-6" />}
-          title={"Total Projects"}
-          subtitle={"$2433"}
+          icon={<MdError className="h-8 w-8" />}
+          title={"Failed"}
+          subtitle={"23"}
+          trend="-15.2%"
+          trendColor="green"
         />
       </div>
 
-      {/* Charts */}
-
-      <div className="mt-5 grid grid-cols-1 gap-5 md:grid-cols-2">
-        <TotalSpent />
-        <WeeklyRevenue />
+      {/* Main Charts Section - Better Layout */}
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+        {/* Form Processing Overview - Takes 2 columns */}
+        <div className="lg:col-span-2">
+          <FormProcessingChart />
+        </div>
+        
+        {/* Document Type Distribution - Takes 1 column, larger */}
+        <div className="lg:col-span-1">
+          <DocumentTypeDistribution />
+        </div>
       </div>
 
-      {/* Tables & Charts */}
+      {/* Secondary Charts Section */}
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+        {/* Upload Trends */}
+        <UploadTrendsChart />
+        
+        {/* Processing Status */}
+        <ProcessingStatusChart />
+      </div>
 
-      <div className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-2">
-        {/* Check Table */}
-        <div>
-          <CheckTable
-            columnsData={columnsDataCheck}
-            tableData={tableDataCheck}
-          />
+      {/* Third Row - Activity and Calendar */}
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+        {/* Recent Activity - Takes 2 columns */}
+        <div className="lg:col-span-2">
+          <RecentActivityChart />
         </div>
-
-        {/* Traffic chart & Pie Chart */}
-
-        <div className="grid grid-cols-1 gap-5 rounded-[20px] md:grid-cols-2">
-          <DailyTraffic />
-          <PieChartCard />
+        
+        {/* Calendar - Takes 1 column */}
+        <div className="rounded-[20px] bg-white p-6 shadow-3xl shadow-shadow-500 dark:!bg-navy-800 dark:shadow-none">
+          <div className="mb-4">
+            <h3 className="text-xl font-bold text-navy-700 dark:text-white mb-2">
+              Calendar
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Schedule and events
+            </p>
+          </div>
+          <MiniCalendar />
         </div>
+      </div>
 
-        {/* Complex Table , Task & Calendar */}
-
+      {/* Tables Section */}
+      <div className="grid grid-cols-1 gap-8 xl:grid-cols-2">
+        <CheckTable
+          columnsData={columnsDataCheck}
+          tableData={tableDataCheck}
+        />
         <ComplexTable
           columnsData={columnsDataComplex}
           tableData={tableDataComplex}
         />
-
-        {/* Task chart & Calendar */}
-
-        <div className="grid grid-cols-1 gap-5 rounded-[20px] md:grid-cols-2">
-          <TaskCard />
-          <div className="grid grid-cols-1 rounded-[20px]">
-            <MiniCalendar />
-          </div>
-        </div>
       </div>
     </div>
   );

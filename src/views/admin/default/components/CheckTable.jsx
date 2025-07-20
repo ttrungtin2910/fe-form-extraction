@@ -2,6 +2,8 @@ import React from "react";
 import CardMenu from "components/card/CardMenu";
 import Checkbox from "components/checkbox";
 import Card from "components/card";
+import { useImageManagement } from "contexts/ImageManagementContext";
+import { MdCheckBox, MdCheckBoxOutlineBlank } from "react-icons/md";
 
 import {
   createColumnHelper,
@@ -15,16 +17,49 @@ function CheckTable(props) {
   const { tableData } = props;
   const [sorting, setSorting] = React.useState([]);
   let defaultData = tableData;
+  const { selectedImages, updateSelectedImages } = useImageManagement();
+  
+  const handleRowSelect = (rowName, isSelected) => {
+    const newSet = new Set(selectedImages);
+    if (isSelected) {
+      newSet.add(rowName);
+    } else {
+      newSet.delete(rowName);
+    }
+    updateSelectedImages(newSet);
+  };
+
+  const handleSelectAll = () => {
+    if (selectedImages.size === defaultData.length) {
+      updateSelectedImages(new Set());
+    } else {
+      const allRowNames = defaultData.map(row => row.name[0]);
+      updateSelectedImages(new Set(allRowNames));
+    }
+  };
   const columns = [
     columnHelper.accessor("name", {
       id: "name",
       header: () => (
-        <p className="text-sm font-bold text-gray-600 dark:text-white">NAME</p>
+        <div className="flex items-center">
+          <button
+            onClick={handleSelectAll}
+            className="mr-3 p-1 hover:bg-gray-100 rounded"
+          >
+            {selectedImages.size === defaultData.length && defaultData.length > 0 ? (
+              <MdCheckBox className="h-4 w-4 text-brand-500" />
+            ) : (
+              <MdCheckBoxOutlineBlank className="h-4 w-4 text-gray-400" />
+            )}
+          </button>
+          <p className="text-sm font-bold text-gray-600 dark:text-white">NAME</p>
+        </div>
       ),
       cell: (info) => (
         <div className="flex items-center">
           <Checkbox
-            defaultChecked={info.getValue()[1]}
+            checked={selectedImages.has(info.getValue()[0])}
+            onChange={(e) => handleRowSelect(info.getValue()[0], e.target.checked)}
             colorScheme="brandScheme"
             me="10px"
           />
@@ -91,8 +126,17 @@ function CheckTable(props) {
           Check Table
         </div>
 
-        <CardMenu />
+        {selectedImages.size === 0 && <CardMenu />}
       </header>
+
+      {/* Selection Info */}
+      {selectedImages.size > 0 && (
+        <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <p className="text-blue-800 font-medium">
+            {selectedImages.size} of {defaultData.length} rows selected
+          </p>
+        </div>
+      )}
 
       <div className="mt-8 overflow-x-scroll xl:overflow-x-hidden">
         <table className="w-full">

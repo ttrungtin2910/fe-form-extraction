@@ -1,12 +1,14 @@
 import React from "react";
 
 // Admin Imports
+import Dashboard from "views/admin/dashboard";
 import MainDashboard from "views/admin/default";
 import ImageManagement from "views/admin/imagemanagement";
 import NFTMarketplace from "views/admin/marketplace";
 import Profile from "views/admin/profile";
 import DataTables from "views/admin/tables";
 import RTLDefault from "views/rtl/default";
+import Synchronization from "views/admin/Synchronization";
 
 // Auth Imports
 import SignIn from "views/auth/SignIn";
@@ -18,17 +20,33 @@ import {
   MdBarChart,
   MdPerson,
   MdLock,
+  MdSync,
 } from "react-icons/md";
 
 import { IoIosDocument } from "react-icons/io";
+import { MdDashboard } from "react-icons/md";
 
 const routes = [
+  {
+    name: "Dashboard",
+    layout: "/admin",
+    path: "dashboard",
+    icon: <MdDashboard className="h-6 w-6" />,
+    component: <Dashboard />,
+  },
   {
     name: "Image Management",
     layout: "/admin",
     path: "imagemanagement",
     icon: <IoIosDocument className="h-6 w-6" />,
     component: <ImageManagement />,
+  },
+  {
+    name: "Synchronization",
+    layout: "/admin",
+    path: "synchronization",
+    icon: <MdSync className="h-6 w-6" />,
+    component: <Synchronization />,
   },
   // {
   //   name: "Main Dashboard",
