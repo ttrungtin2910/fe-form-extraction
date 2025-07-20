@@ -5,6 +5,7 @@ import { FaPlayCircle, FaSpinner, FaTrash } from "react-icons/fa";
 
 import DisplayStudentForm from "components/form/StudentForm";
 import { api } from "config/api";
+import { useToast, useConfirm } from "components/common/ToastProvider";
 
 // Empty form as fallback
 const emptyForm = {
@@ -49,6 +50,9 @@ const ImageDialog = ({ open, title, image, size, status, createAt, onClose, onAn
   const [formData, setFormData] = useState(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
+  const toast = useToast();
+  const confirmModal = useConfirm();
 
   // Helper to reload extract info
   const reloadExtractInfo = async () => {
@@ -102,16 +106,14 @@ const ImageDialog = ({ open, title, image, size, status, createAt, onClose, onAn
   };
 
   const handleDeleteClick = async () => {
-    if (!window.confirm(`Are you sure you want to delete "${title}"?`)) {
-      console.log(`[ImageDialog] Delete cancelled for: ${title}`);
-      return;
-    }
+    const ok = await confirmModal({title:"Delete image",message:`Delete \"${title}\"?`,type:"danger",confirmText:"Delete"});
+    if(!ok) return;
 
     console.log(`[ImageDialog] Starting deletion for image: ${title}`);
     setDeleting(true);
     try {
       const result = await api.images.delete(title);
-      console.log(`[ImageDialog] Delete completed for: ${title}`, result);
+      toast.success("Image deleted");
       
       // Call the parent callback if provided
       if (onDelete) {
@@ -122,7 +124,7 @@ const ImageDialog = ({ open, title, image, size, status, createAt, onClose, onAn
       // Close dialog after successful deletion
       onClose();
     } catch (error) {
-      console.error(`[ImageDialog] Error during deletion for: ${title}`, error);
+      toast.error(error.message);
     } finally {
       setDeleting(false);
     }

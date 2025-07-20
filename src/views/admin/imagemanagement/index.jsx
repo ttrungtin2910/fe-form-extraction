@@ -1,17 +1,29 @@
 import { useEffect, useState } from "react";
 import NftCard from "components/image/NftCard";
+import FolderCard from "components/folder/FolderCard";
 import UploadButton from "components/button/UploadButton";
-import { MdRefresh, MdSort, MdKeyboardArrowDown, MdCheckBox, MdCheckBoxOutlineBlank } from "react-icons/md";
+import { MdRefresh, MdSort, MdKeyboardArrowDown, MdCheckBox, MdCheckBoxOutlineBlank, MdFolder, MdEdit, MdDelete, MdFolderOpen } from "react-icons/md";
 import { FaPlayCircle, FaTrash, FaSpinner } from "react-icons/fa";
 import { api } from "config/api";
 import { useImageManagement } from "contexts/ImageManagementContext";
+import FolderModal from "components/folder/FolderModal";
+import { useToast, useConfirm } from "components/common/ToastProvider";
 
 const ImageManagement = () => {
   const [images, setImages] = useState([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [folders, setFolders] = useState([]);
+  const [currentFolder, setCurrentFolder] = useState("");
+  const [showNewFolderModal, setShowNewFolderModal] = useState(false);
+  const [newFolderName, setNewFolderName] = useState("");
+  const [modalError, setModalError] = useState("");
   const [sortField, setSortField] = useState("ImageName"); // "CreatedAt", "ImageName", "Status"
   const [sortOrder, setSortOrder] = useState("desc"); // "asc" or "desc"
   const [showSortMenu, setShowSortMenu] = useState(false);
+  const [childFolders, setChildFolders] = useState([]);
+  const [modalType, setModalType] = useState(null); // 'rename' | 'delete'
+  const [showFolderModal, setShowFolderModal] = useState(false);
+  const [renameInput, setRenameInput] = useState("");
   
   const { 
     selectedImages, 
@@ -28,11 +40,21 @@ const ImageManagement = () => {
     analyzeProgress
   } = useImageManagement();
 
-  const fetchImages = async () => {
+  const toast = useToast();
+  const confirm = useConfirm();
+
+  const fetchImages = async (foldersArg = folders) => {
     console.log("[ImageManagement] Starting to fetch images");
     setIsRefreshing(true);
     try {
-      const data = await api.images.getAll();
+      const data = currentFolder ? await api.images.getByFolder(currentFolder) : await api.images.getAll();
+      // compute immediate child folders
+      const childFolders = foldersArg.filter(f => {
+        if (currentFolder) {
+          return f.startsWith(currentFolder + "/") && f.split("/").length === currentFolder.split("/").length + 1;
+        }
+        return f.split("/").length === 1;
+      });
       console.log("[ImageManagement] Raw images data received:", data);
       
       const validImages = data.filter(
@@ -72,6 +94,7 @@ const ImageManagement = () => {
       console.log("[ImageManagement] Images sorted and set:", sortedImages.length);
       setImages(sortedImages);
       updateImages(sortedImages);
+      setChildFolders(childFolders);
     } catch (error) {
       console.error("[ImageManagement] Error fetching images:", error);
     } finally {
@@ -80,8 +103,18 @@ const ImageManagement = () => {
   };
 
   useEffect(() => {
-    fetchImages();
-  }, [sortField, sortOrder]);
+    const init = async () => {
+      try {
+        const folderData = await api.images.getFolders();
+        const fetchedFolders = folderData.folders || [];
+        setFolders(fetchedFolders);
+        await fetchImages(fetchedFolders);
+      } catch (e) {
+        console.error("[ImageManagement] Failed to fetch folders", e);
+      }
+    };
+    init();
+  }, [sortField, sortOrder, currentFolder]);
 
   // Set handlers for sidebar buttons
   useEffect(() => {
@@ -103,8 +136,14 @@ const ImageManagement = () => {
     };
   }, [showSortMenu]);
 
-  const handleRefresh = () => {
-    fetchImages();
+  const handleRefresh = async () => {
+    try {
+      const folderData = await api.images.getFolders();
+      setFolders(folderData.folders || []);
+      await fetchImages(folderData.folders || []);
+    } catch (e) {
+      console.error("[ImageManagement] Failed to refresh folders", e);
+    }
   };
 
   const handleSortToggle = () => {
@@ -180,7 +219,7 @@ const ImageManagement = () => {
 
   const handleAnalyzeSelected = async () => {
     if (selectedImages.size === 0) {
-      alert("Please select at least one image to analyze");
+      toast.warn("Please select at least one image to analyze");
       return;
     }
 
@@ -203,7 +242,8 @@ const ImageManagement = () => {
             size: "—",
             image: img.ImagePath,
             status: img.Status,
-            createAt: img.CreatedAt
+            createAt: img.CreatedAt,
+            folderPath: img.FolderPath || ""
           });
           console.log(`[ImageManagement] Analysis completed for: ${img.ImageName}`, result);
           
@@ -218,28 +258,23 @@ const ImageManagement = () => {
       
       // Refresh the image list after analysis
       fetchImages();
-      alert(`Analysis completed for ${totalImages} selected images. The list has been refreshed.`);
+      toast.success(`Analyzed ${totalImages} images`);
     } finally {
       setAnalyzingState(false);
       clearAnalyzingImages();
       resetAnalyzeProgress();
+      handleRefresh();
     }
   };
 
   const handleDeleteSelected = async () => {
     if (selectedImages.size === 0) {
-      alert("Please select at least one image to delete");
+      toast.warn("Please select at least one image to delete");
       return;
     }
 
-    const confirmDelete = window.confirm(
-      `Are you sure you want to delete ${selectedImages.size} selected images? This action cannot be undone.`
-    );
-
-    if (!confirmDelete) {
-      console.log("[ImageManagement] Bulk delete cancelled");
-      return;
-    }
+    const confirmDelete = await confirm({title:"Delete images",message:`Delete ${selectedImages.size} images?`,type:"danger",confirmText:"Delete"});
+    if(!confirmDelete) return;
 
     console.log(`[ImageManagement] Starting bulk delete for ${selectedImages.size} selected images`);
     setDeletingState(true);
@@ -263,16 +298,20 @@ const ImageManagement = () => {
       
       // Clear selection and refresh
       updateSelectedImages(new Set());
-      fetchImages();
+      handleRefresh();
       
       if (errorCount > 0) {
-        alert(`Deleted ${successCount} images successfully. ${errorCount} images failed to delete.`);
+        toast.success(`Deleted ${successCount} images, ${errorCount} failed`);
       } else {
-        alert(`Successfully deleted ${successCount} images`);
+        toast.success(`Deleted ${successCount} images`);
       }
     } finally {
       setDeletingState(false);
     }
+  };
+
+  const handleFolderChange = (event) => {
+    setCurrentFolder(event.target.value);
   };
 
   return (
@@ -400,7 +439,87 @@ const ImageManagement = () => {
           </div>
         </div>
 
-        <UploadButton onUploadComplete={handleRefresh} />
+        <div className="flex items-center gap-3 mb-4">
+          {/* All Folders quick button */}
+          <button
+            onClick={() => setCurrentFolder("")}
+            className="flex items-center gap-1 px-3 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm transition"
+          >
+            <MdFolderOpen className="h-4 w-4" /> All Folders
+          </button>
+
+          {/* Folder dropdown */}
+          <select
+            value={currentFolder}
+            onChange={handleFolderChange}
+            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+          >
+            <option value="">All Folders</option>
+            {folders.map((f) => {
+              const depth = f.split("/").length - 1;
+              const name = f.split("/").pop();
+              return (
+                <option key={f} value={f}>{`${"\u00A0".repeat(depth*2)}${name}`}</option>
+              );
+            })}
+          </select>
+
+          {/* New Folder */}
+          <button
+            onClick={() => {
+              setNewFolderName("");
+              setModalError("");
+              setShowNewFolderModal(true);
+            }}
+            className="flex items-center gap-1 px-3 py-2 rounded-lg bg-brand-500 text-white text-sm hover:bg-brand-600"
+          >
+            <MdFolder className="h-4 w-4" /> New Folder
+          </button>
+
+          {/* Rename Folder */}
+          {currentFolder && (
+            <button
+              onClick={() => {
+                setRenameInput(currentFolder.split("/").pop());
+                setModalType('rename');
+                setShowFolderModal(true);
+              }}
+              className="flex items-center gap-1 px-3 py-2 rounded-lg bg-yellow-500 text-white text-sm hover:bg-yellow-600"
+            >
+              <MdEdit className="h-4 w-4" /> Rename
+            </button>
+          )}
+
+          {/* Delete Folder */}
+          {currentFolder && (
+            <button
+              onClick={() => {
+                setModalType('delete');
+                setShowFolderModal(true);
+              }}
+              className="flex items-center gap-1 px-3 py-2 rounded-lg bg-red-500 text-white text-sm hover:bg-red-600"
+            >
+              <MdDelete className="h-4 w-4" /> Delete
+            </button>
+          )}
+
+          {/* Upload button passes folderPath */}
+          <UploadButton onUploadComplete={handleRefresh} folderPath={currentFolder} />
+        </div>
+
+        {/* Breadcrumb navigation */}
+        <div className="mb-4 text-sm flex items-center flex-wrap gap-1">
+          <button onClick={() => setCurrentFolder("")} className="text-brand-500 hover:underline">Root</button>
+          {currentFolder && currentFolder.split("/").map((part, idx, arr) => {
+            const path = arr.slice(0, idx + 1).join("/");
+            return (
+              <span key={path} className="flex items-center gap-1">
+                <span className="text-gray-400">/</span>
+                <button onClick={() => setCurrentFolder(path)} className="text-brand-500 hover:underline">{part}</button>
+              </span>
+            );
+          })}
+        </div>
 
         {/* Selection Info */}
         {selectedImages.size > 0 && (
@@ -412,6 +531,9 @@ const ImageManagement = () => {
         )}
 
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-3">
+          {childFolders.map((fp) => (
+            <FolderCard key={fp} path={fp} currentFolder={currentFolder} onNavigate={setCurrentFolder} onRefresh={handleRefresh} />
+          ))}
           {images.map((img, index) => (
             <NftCard
               key={index}
@@ -430,6 +552,81 @@ const ImageManagement = () => {
           ))}
         </div>
       </div>
+
+      {/* New Folder Modal */}
+      {showNewFolderModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white dark:bg-navy-800 rounded-2xl shadow-xl w-96 p-6">
+            <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-4">Create New Folder</h3>
+            <input
+              type="text"
+              value={newFolderName}
+              onChange={(e) => setNewFolderName(e.target.value)}
+              placeholder="Folder name"
+              className="w-full px-4 py-2 mb-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-brand-500 focus:outline-none"
+            />
+            {modalError && <p className="text-red-500 text-sm mb-2">{modalError}</p>}
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowNewFolderModal(false)}
+                className="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 text-sm hover:bg-gray-300"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  if (!newFolderName.trim()) {
+                    setModalError("Folder name is required");
+                    return;
+                  }
+                  const newPath = currentFolder ? `${currentFolder}/${newFolderName.trim()}` : newFolderName.trim();
+                  try {
+                    await api.images.createFolder(newPath);
+                    const folderData = await api.images.getFolders();
+                    setFolders(folderData.folders || []);
+                    await fetchImages(folderData.folders || []);
+                    setShowNewFolderModal(false);
+                  } catch (e) {
+                    setModalError(e.message || "Failed to create folder");
+                  }
+                }}
+                className="px-4 py-2 rounded-lg bg-brand-500 text-white text-sm hover:bg-brand-600"
+              >
+                Create
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showFolderModal && (
+        <FolderModal
+          type={modalType}
+          currentName={renameInput}
+          setInputValue={setRenameInput}
+          onClose={() => setShowFolderModal(false)}
+          onConfirm={async (value) => {
+            if (modalType === 'rename') {
+              const parts = currentFolder.split("/");
+              parts.pop();
+              const parentPath = parts.join("/");
+              const newPath = parentPath ? `${parentPath}/${value}` : value;
+              try {
+                await api.images.renameFolder(currentFolder, newPath);
+                await handleRefresh();
+                setCurrentFolder(newPath);
+              } catch (e) { toast.error(e.message);}            
+            } else {
+              try {
+                await api.images.deleteFolder(currentFolder);
+                await handleRefresh();
+                setCurrentFolder("");
+              } catch (e) { toast.error(e.message);}            
+            }
+            setShowFolderModal(false);
+          }}
+        />
+      )}
     </div>
   );
 };

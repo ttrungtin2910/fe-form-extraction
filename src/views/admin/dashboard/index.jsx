@@ -6,6 +6,7 @@ import { MdCheckBox, MdCheckBoxOutlineBlank } from "react-icons/md";
 import PieChart from "components/charts/PieChart";
 import { FaSpinner, FaTrash, FaPlayCircle } from "react-icons/fa";
 import { useImageManagement } from "contexts/ImageManagementContext";
+import { useToast, useConfirm } from "components/common/ToastProvider";
 
 const statusColor = (status) => {
   if (status === "Completed") return "bg-green-100 text-green-700 border-green-200";
@@ -52,6 +53,9 @@ const Dashboard = () => {
     setDeleteHandler,
     selectedImages
   } = useImageManagement();
+
+  const toast = useToast();
+  const confirmModal = useConfirm();
 
   const fetchImages = async () => {
     setLoading(true);
@@ -198,6 +202,7 @@ const Dashboard = () => {
           image: img.ImagePath,
           status: img.Status,
           createAt: img.CreatedAt,
+          folderPath: img.FolderPath || "",
         });
         setAnalyzeProgress(i + 1);
       }
@@ -213,7 +218,8 @@ const Dashboard = () => {
   // Delete selected images
   async function handleDeleteSelected() {
     if (selected.length === 0) return;
-    if (!window.confirm(`Are you sure you want to delete ${selected.length} selected images?`)) return;
+    const ok = await confirmModal({title:"Delete images",message:`Delete ${selected.length} images?`,type:"danger",confirmText:"Delete"});
+    if(!ok) return;
     setLoading(true);
     try {
       for (let i = 0; i < selected.length; i++) {
@@ -223,6 +229,7 @@ const Dashboard = () => {
       }
       fetchImages();
       setSelected([]);
+      toast.success("Images deleted");
     } finally {
       setLoading(false);
     }

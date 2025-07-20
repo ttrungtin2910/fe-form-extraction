@@ -7,6 +7,9 @@ const API_CONFIG = {
   IMAGES: {
     // Get all images
     GET_ALL: "/images/",
+    // Get folders list
+    FOLDERS: "/folders/",
+    RENAME_FOLDER: "/folders/rename",
     // Delete specific image by name
     DELETE: (imageName) => `/images/${encodeURIComponent(imageName)}`,
     // Upload new image
@@ -126,6 +129,12 @@ export const api = {
   // Image operations
   images: {
     getAll: () => apiCall(API_CONFIG.IMAGES.GET_ALL),
+    getByFolder: (folderPath) => apiCall(`${API_CONFIG.IMAGES.GET_ALL}?folderPath=${encodeURIComponent(folderPath)}`),
+    getFolders: () => apiCall(API_CONFIG.IMAGES.FOLDERS),
+    createFolder: (folderPath) => apiCall(API_CONFIG.IMAGES.FOLDERS, {
+      method: 'POST',
+      body: JSON.stringify({ folderPath })
+    }),
     delete: (imageName) => apiCall(API_CONFIG.IMAGES.DELETE(imageName), { method: 'DELETE' }),
     upload: (formData) => apiCall(API_CONFIG.IMAGES.UPLOAD, {
       method: 'POST',
@@ -135,6 +144,11 @@ export const api = {
     fetchImages: (body = {}) => apiCall(API_CONFIG.IMAGES.GET_ALL, {
       method: 'POST',
       body: JSON.stringify(body),
+    }),
+    deleteFolder: (folderPath) => apiCall(`${API_CONFIG.IMAGES.FOLDERS}${encodeURIComponent(folderPath)}`, { method: 'DELETE' }),
+    renameFolder: (oldPath, newPath) => apiCall(API_CONFIG.IMAGES.RENAME_FOLDER, {
+      method: 'POST',
+      body: JSON.stringify({ oldPath, newPath })
     }),
   },
   

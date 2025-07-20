@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { MdCloudUpload, MdCheckCircle, MdError } from "react-icons/md";
 import { api } from "config/api";
 
-const UploadButton = ({ onUploadComplete }) => {
+const UploadButton = ({ onUploadComplete, folderPath = "" }) => {
     const inputRef = useRef(null);
     const [isUploading, setIsUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
@@ -32,6 +32,7 @@ const UploadButton = ({ onUploadComplete }) => {
             const formData = new FormData();
             formData.append("status", "Uploaded");
             formData.append("file", file, file.name);
+            formData.append("folderPath", folderPath);
 
             // Validate file before upload
             if (!file || file.size === 0) {
@@ -111,23 +112,20 @@ const UploadButton = ({ onUploadComplete }) => {
                 {getStatusText()}
             </button>
 
-            {/* Progress Bar */}
+            {/* Global progress overlay */}
             {isUploading && (
-                <div className="mt-4">
-                    <div className="flex justify-between text-sm text-gray-600 mb-1">
-                        <span>Progress</span>
-                        <span>{Math.round(uploadProgress)}%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700">
-                        <div 
-                            className="bg-brand-500 h-2 rounded-full transition-all duration-300 ease-out"
-                            style={{ width: `${uploadProgress}%` }}
-                        ></div>
-                    </div>
-                    <div className="text-xs text-gray-500 mt-1">
-                        {uploadedCount} of {totalFiles} files uploaded
-                    </div>
+              <div className="fixed bottom-4 left-4 right-4 md:left-1/2 md:-translate-x-1/2 md:w-1/2 z-50 bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-gray-700">Uploading images...</span>
+                  <span className="text-sm font-medium text-gray-700">{uploadedCount}/{totalFiles}</span>
                 </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    className="h-2 rounded-full bg-brand-500 transition-all"
+                    style={{ width: `${totalFiles ? (uploadedCount / totalFiles) * 100 : 0}%` }}
+                  ></div>
+                </div>
+              </div>
             )}
 
             <input

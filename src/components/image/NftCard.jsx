@@ -8,6 +8,7 @@ import { MdCheckBox, MdCheckBoxOutlineBlank } from "react-icons/md";
 import { MdStorage, MdCalendarToday, MdCheckCircle, MdPending, MdInfo, MdError } from "react-icons/md";
 import { api } from "config/api";
 import { useImageManagement } from "contexts/ImageManagementContext";
+import { useToast, useConfirm } from "components/common/ToastProvider";
 
 const NftCard = ({ 
   title, 
@@ -29,6 +30,9 @@ const NftCard = ({
   
   // Local loading state for this specific image
   const isAnalyzing = loading;
+
+  const toast = useToast();
+  const confirmModal = useConfirm();
 
   const handleAnalyzeClick = async () => {
     console.log(`[NftCard] Starting analysis for image: ${title}`);
@@ -63,16 +67,14 @@ const NftCard = ({
   };
 
   const handleDeleteClick = async () => {
-    if (!window.confirm(`Are you sure you want to delete "${title}"?`)) {
-      console.log(`[NftCard] Delete cancelled for: ${title}`);
-      return;
-    }
+    const ok = await confirmModal({title:"Delete image",message:`Delete \"${title}\"?`,type:"danger",confirmText:"Delete"});
+    if(!ok) return;
 
     console.log(`[NftCard] Starting deletion for image: ${title}`);
     setDeleteLoading(true);
     try {
       const result = await api.images.delete(title);
-      console.log(`[NftCard] Delete completed for: ${title}`, result);
+      toast.success("Image deleted");
       
       // Call the parent callback if provided
       if (onDelete) {
@@ -80,7 +82,7 @@ const NftCard = ({
         onDelete(title);
       }
     } catch (error) {
-      console.error(`[NftCard] Error during deletion for: ${title}`, error);
+      toast.error(error.message);
     } finally {
       setDeleteLoading(false);
     }
