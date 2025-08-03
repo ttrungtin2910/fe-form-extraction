@@ -78,7 +78,7 @@ const ImageDialog = ({ open, title, image, size, status, createAt, onClose, onAn
     try {
       const result = await api.formExtraction.extract({ 
         title,
-        size,
+        size: typeof size === 'number' ? size : 0,
         image,
         status,
         createAt

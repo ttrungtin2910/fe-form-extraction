@@ -128,8 +128,8 @@ export const apiCall = async (endpoint, options = {}) => {
 export const api = {
   // Image operations
   images: {
-    getAll: () => apiCall(API_CONFIG.IMAGES.GET_ALL),
-    getByFolder: (folderPath) => apiCall(`${API_CONFIG.IMAGES.GET_ALL}?folderPath=${encodeURIComponent(folderPath)}`),
+    getAll: ({page=1,limit=20}={}) => apiCall(`${API_CONFIG.IMAGES.GET_ALL}?page=${page}&limit=${limit}`),
+    getByFolder: (folderPath,{page=1,limit=20}={}) => apiCall(`${API_CONFIG.IMAGES.GET_ALL}?folderPath=${encodeURIComponent(folderPath)}&page=${page}&limit=${limit}`),
     getFolders: () => apiCall(API_CONFIG.IMAGES.FOLDERS),
     createFolder: (folderPath) => apiCall(API_CONFIG.IMAGES.FOLDERS, {
       method: 'POST',

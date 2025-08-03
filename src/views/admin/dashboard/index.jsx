@@ -61,8 +61,8 @@ const Dashboard = () => {
     setLoading(true);
     setError(null);
     try {
-      const result = await api.images.getAll();
-      setImages(result || []);
+      const resp = await api.images.getAll({page:1,limit:100});
+      setImages(resp.data || []);
     } catch (err) {
       setError("Failed to fetch images");
     } finally {
@@ -84,6 +84,12 @@ const Dashboard = () => {
     setAnalyzeHandler(handleAnalyzeSelected);
     setDeleteHandler(handleDeleteSelected);
   });
+
+  useEffect(() => {
+    return () => {
+      updateSelectedImages(new Set());
+    };
+  }, []);
 
   const handleSelectAll = () => {
     if (selected.length === images.length && images.length > 0) {
@@ -198,7 +204,7 @@ const Dashboard = () => {
         if (!img) continue;
         await api.formExtraction.extract({
           title: img.ImageName,
-          size: "—",
+          size: Number(img.Size || 0),
           image: img.ImagePath,
           status: img.Status,
           createAt: img.CreatedAt,

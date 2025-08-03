@@ -34,14 +34,35 @@ const NftCard = ({
   const toast = useToast();
   const confirmModal = useConfirm();
 
+  const displaySize = typeof size === 'number' ? `${size.toFixed(2)} MB` : size;
+  const parseDate = (str) => {
+    if (!str) return "";
+    if (str.includes("T")) return new Date(str);
+    // Expect format YYYYMMDD_HHMMSS
+    const [datePart, timePart] = str.split("_");
+    if (datePart && timePart) {
+      const year = datePart.slice(0,4);
+      const month = datePart.slice(4,6);
+      const day = datePart.slice(6,8);
+      const hour = timePart.slice(0,2);
+      const minute = timePart.slice(2,4);
+      const second = timePart.slice(4,6);
+      return new Date(`${year}-${month}-${day}T${hour}:${minute}:${second}Z`);
+    }
+    return new Date(str);
+  };
+  const displayDate = (()=>{try{return parseDate(createAt).toLocaleString();}catch(e){return createAt;}})();
+
   const handleAnalyzeClick = async () => {
     console.log(`[NftCard] Starting analysis for image: ${title}`);
     setLoading(true);
     
+    const sizeVal = typeof size === 'number' ? size : 0;
+    
     try {
       const result = await api.formExtraction.extract({ 
         title,
-        size,
+        size: sizeVal,
         image,
         status,
         createAt
@@ -219,11 +240,11 @@ const NftCard = ({
           <div className="flex items-center justify-between text-sm text-gray-600">
             <div className="flex items-center space-x-1">
               <MdStorage className="text-gray-400" />
-              <span className="font-medium">{size} MB</span>
+              <span className="font-medium">{displaySize}</span>
             </div>
             <div className="flex items-center space-x-1">
               <MdCalendarToday className="text-gray-400" />
-              <span className="font-medium">{createAt}</span>
+              <span className="font-medium">{displayDate}</span>
             </div>
           </div>
 

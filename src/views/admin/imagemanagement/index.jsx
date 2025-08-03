@@ -24,6 +24,9 @@ const ImageManagement = () => {
   const [modalType, setModalType] = useState(null); // 'rename' | 'delete'
   const [showFolderModal, setShowFolderModal] = useState(false);
   const [renameInput, setRenameInput] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(20);
   
   const { 
     selectedImages, 
@@ -47,14 +50,22 @@ const ImageManagement = () => {
     console.log("[ImageManagement] Starting to fetch images");
     setIsRefreshing(true);
     try {
-      const data = currentFolder ? await api.images.getByFolder(currentFolder) : await api.images.getAll();
-      // compute immediate child folders
-      const childFolders = foldersArg.filter(f => {
+      const resp = currentFolder ? await api.images.getByFolder(currentFolder,{page:currentPage,limit:itemsPerPage}) : await api.images.getAll({page:currentPage,limit:itemsPerPage});
+      const data = resp.data;
+      // compute immediate child folders first
+      const childFoldersLocal = foldersArg.filter(f => {
         if (currentFolder) {
           return f.startsWith(currentFolder + "/") && f.split("/").length === currentFolder.split("/").length + 1;
         }
         return f.split("/").length === 1;
       });
+      setChildFolders(childFoldersLocal);
+
+      const visibleOnFirst=Math.max(0,itemsPerPage-childFoldersLocal.length);
+      const totalImages=resp.total||0;
+      const totalPagesCalc=Math.max(1,Math.ceil((totalImages+visibleOnFirst)/itemsPerPage));
+      setTotalPages(totalPagesCalc);
+      
       console.log("[ImageManagement] Raw images data received:", data);
       
       const validImages = data.filter(
@@ -62,8 +73,13 @@ const ImageManagement = () => {
       );
       console.log("[ImageManagement] Valid images filtered:", validImages.length);
       
+      // At root view, only show images without FolderPath (i.e., residing in root)
+      const scopedImages = currentFolder
+        ? validImages // already filtered by API
+        : validImages.filter((img) => !img.FolderPath);
+      
       // Sort images based on sortField and sortOrder
-      const sortedImages = validImages.sort((a, b) => {
+      const sortedImages = scopedImages.sort((a, b) => {
         let valueA, valueB;
         
         switch (sortField) {
@@ -94,7 +110,6 @@ const ImageManagement = () => {
       console.log("[ImageManagement] Images sorted and set:", sortedImages.length);
       setImages(sortedImages);
       updateImages(sortedImages);
-      setChildFolders(childFolders);
     } catch (error) {
       console.error("[ImageManagement] Error fetching images:", error);
     } finally {
@@ -114,7 +129,7 @@ const ImageManagement = () => {
       }
     };
     init();
-  }, [sortField, sortOrder, currentFolder]);
+  }, [sortField, sortOrder, currentFolder, currentPage, itemsPerPage]);
 
   // Set handlers for sidebar buttons
   useEffect(() => {
@@ -239,7 +254,7 @@ const ImageManagement = () => {
           console.log(`[ImageManagement] Analyzing image: ${img.ImageName} (${i + 1}/${totalImages})`);
           const result = await api.formExtraction.extract({
             title: img.ImageName,
-            size: "—",
+            size: img.Size || "",
             image: img.ImagePath,
             status: img.Status,
             createAt: img.CreatedAt,
@@ -314,6 +329,17 @@ const ImageManagement = () => {
     setCurrentFolder(event.target.value);
   };
 
+  // Clear selections when leaving page
+  useEffect(() => {
+    return () => {
+      updateSelectedImages(new Set());
+    };
+  }, []);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [currentFolder, sortField, sortOrder, itemsPerPage]);
+
   return (
     <div className="relative">
       {isRefreshing && (
@@ -352,8 +378,8 @@ const ImageManagement = () => {
               onClick={handleSelectAll}
               className={`flex items-center px-4 py-2 rounded-xl text-white transition duration-200 ${
                 selectedImages.size === images.length && images.length > 0
-                  ? "bg-red-500 hover:bg-red-600 active:bg-red-700"
-                  : "bg-brand-500 hover:bg-brand-600 active:bg-brand-700 dark:bg-brand-400 dark:text-white dark:hover:bg-brand-300 dark:active:bg-brand-200"
+                  ? "bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 active:from-red-700 active:to-red-800"
+                  : "bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 active:from-red-700 active:to-red-800"
               }`}
             >
               {selectedImages.size === images.length && images.length > 0 ? (
@@ -373,7 +399,7 @@ const ImageManagement = () => {
             <div className="relative sort-dropdown">
               <button
                 onClick={() => setShowSortMenu(!showSortMenu)}
-                className="flex items-center px-4 py-2 rounded-xl bg-brand-500 text-white transition duration-200 hover:bg-brand-600 active:bg-brand-700 dark:bg-brand-400 dark:text-white dark:hover:bg-brand-300 dark:active:bg-brand-200"
+                className="flex items-center px-4 py-2 rounded-xl bg-gradient-to-r from-red-500 to-red-600 text-white transition duration-200 hover:from-red-600 hover:to-red-700 active:from-red-700 active:to-red-800"
               >
                 <MdSort className="h-4 w-4 mr-2" />
                 Sort by {getSortFieldDisplayName(sortField)}
@@ -418,7 +444,7 @@ const ImageManagement = () => {
             {/* Sort Order Toggle */}
             <button
               onClick={handleSortToggle}
-              className="flex items-center px-4 py-2 rounded-xl bg-brand-500 text-white transition duration-200 hover:bg-brand-600 active:bg-brand-700 dark:bg-brand-400 dark:text-white dark:hover:bg-brand-300 dark:active:bg-brand-200"
+              className="flex items-center px-4 py-2 rounded-xl bg-gradient-to-r from-red-500 to-red-600 text-white transition duration-200 hover:from-red-600 hover:to-red-700 active:from-red-700 active:to-red-800"
             >
               <MdSort className="h-4 w-4 mr-2" />
               {getSortOrderDisplayName()}
@@ -430,7 +456,7 @@ const ImageManagement = () => {
               className={`flex items-center px-4 py-2 rounded-xl text-white transition duration-200 ${
                 isRefreshing
                   ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-brand-500 hover:bg-brand-600 active:bg-brand-700 dark:bg-brand-400 dark:text-white dark:hover:bg-brand-300 dark:active:bg-brand-200"
+                  : "bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 active:from-red-700 active:to-red-800"
               }`}
             >
               <MdRefresh className={`h-4 w-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`} />
@@ -471,7 +497,7 @@ const ImageManagement = () => {
               setModalError("");
               setShowNewFolderModal(true);
             }}
-            className="flex items-center gap-1 px-3 py-2 rounded-lg bg-brand-500 text-white text-sm hover:bg-brand-600"
+            className="flex items-center gap-1 px-3 py-2 rounded-lg bg-gradient-to-r from-red-500 to-red-600 text-white text-sm hover:from-red-600 hover:to-red-700 active:from-red-700 active:to-red-800 shadow-md"
           >
             <MdFolder className="h-4 w-4" /> New Folder
           </button>
@@ -531,7 +557,7 @@ const ImageManagement = () => {
         )}
 
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-3">
-          {childFolders.map((fp) => (
+          {currentPage===1 && childFolders.map((fp) => (
             <FolderCard key={fp} path={fp} currentFolder={currentFolder} onNavigate={setCurrentFolder} onRefresh={handleRefresh} />
           ))}
           {images.map((img, index) => (
@@ -539,7 +565,7 @@ const ImageManagement = () => {
               key={index}
               title={img.ImageName}
               author={new Date(img.CreatedAt).toLocaleDateString()}
-              size="—"
+              size={img.Size || "—"}
               image={img.ImagePath}
               status={img.Status}
               createAt={img.CreatedAt}
@@ -550,6 +576,31 @@ const ImageManagement = () => {
               onRefresh={handleRefresh}
             />
           ))}
+        </div>
+
+        <div className="flex justify-center mt-6 gap-1">
+          <button disabled={currentPage===1} onClick={()=>setCurrentPage(p=>p-1)} className="px-2.5 py-1 rounded bg-gray-200 hover:bg-gray-300 disabled:opacity-50">Prev</button>
+          {Array.from({length: totalPages}).map((_,idx)=>{
+            const page=idx+1;
+            if(totalPages>7){
+              const show=
+                page===1||page===totalPages||
+                Math.abs(page-currentPage)<=1||
+                (currentPage<=3 && page<=4)||
+                (currentPage>=totalPages-2 && page>=totalPages-3);
+              if(!show) return idx===1||idx===totalPages-2? <span key={page} className="px-2">…</span>:null;
+            }
+            return (
+              <button key={page} onClick={()=>setCurrentPage(page)} className={`px-2.5 py-1 rounded ${page===currentPage?"bg-brand-500 text-white":"bg-gray-200 hover:bg-gray-300"}`}>{page}</button>
+            );
+          })}
+          <button disabled={currentPage===totalPages} onClick={()=>setCurrentPage(p=>p+1)} className="px-2.5 py-1 rounded bg-gray-200 hover:bg-gray-300 disabled:opacity-50">Next</button>
+        </div>
+
+        <div className="flex justify-end mt-4">
+          <select value={itemsPerPage} onChange={(e)=>setItemsPerPage(parseInt(e.target.value))} className="border px-2 py-1 rounded text-sm">
+            {[10,20,30,40,50].map(n=>(<option key={n} value={n}>{n} / page</option>))}
+          </select>
         </div>
       </div>
 
