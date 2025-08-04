@@ -17,6 +17,7 @@ const NftCard = ({
   extra, 
   status, 
   createAt, 
+  folderPath,
   isSelected, 
   onSelect, 
   onDelete,
@@ -61,11 +62,12 @@ const NftCard = ({
     
     try {
       const result = await api.formExtraction.extract({ 
-        title,
-        size: sizeVal,
-        image,
-        status,
-        createAt
+        ImageName: title,
+        Size: sizeVal,
+        ImagePath: image,
+        Status: status,
+        CreatedAt: createAt,
+        FolderPath: folderPath || ""
       });
       console.log(`[NftCard] Analysis completed for: ${title}`, result);
       
@@ -295,6 +297,7 @@ const NftCard = ({
         size={size}
         status={status}
         createAt={createAt}
+        folderPath={folderPath}
         onClose={() => setShowModal(false)}
         onAnalyze={onAnalyze}
         onDelete={onDelete}

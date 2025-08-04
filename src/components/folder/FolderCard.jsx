@@ -42,12 +42,12 @@ const FolderCard = ({ path, currentFolder, onNavigate, onRefresh }) => {
       for (let i = 0; i < images.length; i++) {
         const img = images[i];
         await api.formExtraction.extract({
-          title: img.ImageName,
-          size: img.Size || "",
-          image: img.ImagePath,
-          status: img.Status,
-          createAt: img.CreatedAt,
-          folderPath: img.FolderPath || "",
+          ImageName: img.ImageName,
+          Size: img.Size || 0,
+          ImagePath: img.ImagePath,
+          Status: img.Status,
+          CreatedAt: img.CreatedAt,
+          FolderPath: img.FolderPath || "",
         });
       }
       onRefresh();

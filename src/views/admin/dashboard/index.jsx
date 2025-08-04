@@ -203,12 +203,12 @@ const Dashboard = () => {
         const img = images.find((img) => img.ImageName === selected[i]);
         if (!img) continue;
         await api.formExtraction.extract({
-          title: img.ImageName,
-          size: Number(img.Size || 0),
-          image: img.ImagePath,
-          status: img.Status,
-          createAt: img.CreatedAt,
-          folderPath: img.FolderPath || "",
+          ImageName: img.ImageName,
+          Size: Number(img.Size || 0),
+          ImagePath: img.ImagePath,
+          Status: img.Status,
+          CreatedAt: img.CreatedAt,
+          FolderPath: img.FolderPath || "",
         });
         setAnalyzeProgress(i + 1);
       }

@@ -46,7 +46,7 @@ const emptyForm = {
   },
 };
 
-const ImageDialog = ({ open, title, image, size, status, createAt, onClose, onAnalyze, onDelete, onRefresh }) => {
+const ImageDialog = ({ open, title, image, size, status, createAt, folderPath, onClose, onAnalyze, onDelete, onRefresh }) => {
   const [formData, setFormData] = useState(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -57,7 +57,7 @@ const ImageDialog = ({ open, title, image, size, status, createAt, onClose, onAn
   // Helper to reload extract info
   const reloadExtractInfo = async () => {
     try {
-      const requestData = { title };
+      const requestData = { ImageName: title };
       const result = await api.formExtraction.getInfo(requestData);
       const formData = result?.analysis_result || result;
       setFormData(formData);
@@ -77,11 +77,12 @@ const ImageDialog = ({ open, title, image, size, status, createAt, onClose, onAn
     
     try {
       const result = await api.formExtraction.extract({ 
-        title,
-        size: typeof size === 'number' ? size : 0,
-        image,
-        status,
-        createAt
+        ImageName: title,
+        Size: typeof size === 'number' ? size : 0,
+        ImagePath: image,
+        Status: status,
+        CreatedAt: createAt,
+        FolderPath: folderPath || ""
       });
       console.log(`[ImageDialog] Analysis completed for: ${title}`, result);
       

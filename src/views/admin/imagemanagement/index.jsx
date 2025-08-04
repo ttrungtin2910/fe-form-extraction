@@ -253,12 +253,12 @@ const ImageManagement = () => {
         try {
           console.log(`[ImageManagement] Analyzing image: ${img.ImageName} (${i + 1}/${totalImages})`);
           const result = await api.formExtraction.extract({
-            title: img.ImageName,
-            size: img.Size || "",
-            image: img.ImagePath,
-            status: img.Status,
-            createAt: img.CreatedAt,
-            folderPath: img.FolderPath || ""
+            ImageName: img.ImageName,
+            Size: img.Size || 0,
+            ImagePath: img.ImagePath,
+            Status: img.Status,
+            CreatedAt: img.CreatedAt,
+            FolderPath: img.FolderPath || ""
           });
           console.log(`[ImageManagement] Analysis completed for: ${img.ImageName}`, result);
           
@@ -569,6 +569,7 @@ const ImageManagement = () => {
               image={img.ImagePath}
               status={img.Status}
               createAt={img.CreatedAt}
+              folderPath={img.FolderPath}
               isSelected={selectedImages.has(img.ImageName)}
               onSelect={handleImageSelect}
               onDelete={handleImageDelete}
