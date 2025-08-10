@@ -238,21 +238,18 @@ const ImageManagement = () => {
       return;
     }
 
-    console.log(`[ImageManagement] Starting analysis for ${selectedImages.size} selected images`);
+    console.log(`[ImageManagement] Starting parallel analysis for ${selectedImages.size} selected images`);
     setAnalyzingState(true);
-    
+
     try {
       const selectedImageData = images.filter(img => selectedImages.has(img.ImageName));
       const totalImages = selectedImageData.length;
-      
-      // Initialize progress
       setAnalyzeProgressState(0, totalImages);
-      
-      for (let i = 0; i < selectedImageData.length; i++) {
-        const img = selectedImageData[i];
+
+      // 1. Dispatch all tasks in parallel (fire-and-collect)
+      const dispatchPromises = selectedImageData.map(async (img) => {
         try {
-          console.log(`[ImageManagement] Analyzing image: ${img.ImageName} (${i + 1}/${totalImages})`);
-          const result = await api.formExtraction.extract({
+          const resp = await api.queue.extract({
             ImageName: img.ImageName,
             Size: img.Size || 0,
             ImagePath: img.ImagePath,
@@ -260,20 +257,67 @@ const ImageManagement = () => {
             CreatedAt: img.CreatedAt,
             FolderPath: img.FolderPath || ""
           });
-          console.log(`[ImageManagement] Analysis completed for: ${img.ImageName}`, result);
-          
-          // Update progress after each successful analysis
-          setAnalyzeProgressState(i + 1, totalImages);
-        } catch (error) {
-          console.error(`[ImageManagement] Error analyzing image: ${img.ImageName}`, error);
-          // Still update progress even if there's an error
-          setAnalyzeProgressState(i + 1, totalImages);
+          return { image: img.ImageName, taskId: resp.task_id };
+        } catch (e) {
+          console.error('[ImageManagement] Failed to enqueue', img.ImageName, e);
+          return { image: img.ImageName, taskId: null, error: e };
         }
+      });
+
+      const taskMappings = await Promise.all(dispatchPromises);
+      const validTasks = taskMappings.filter(t => t.taskId);
+      const failedEnqueue = taskMappings.filter(t => !t.taskId).length;
+
+      if (failedEnqueue) {
+        toast.warn(`${failedEnqueue} images failed to enqueue`);
       }
-      
-      // Refresh the image list after analysis
+
+      // 2. Poll all tasks concurrently
+      let attempts = 0;
+      const maxAttempts = 180; // ~3 minutes
+      const stateMap = new Map(); // taskId -> state
+      const imageByTask = new Map(validTasks.map(t => [t.taskId, t.image]));
+
+      const poll = async () => {
+        attempts++;
+        const pendingTaskIds = validTasks.map(t => t.taskId).filter(id => {
+          const st = stateMap.get(id);
+            return !(st === 'SUCCESS' || st === 'FAILURE');
+        });
+        if (!pendingTaskIds.length) return true; // all done
+
+        // Fetch statuses sequentially to avoid burst (could batch Promise.all if acceptable)
+        for (const id of pendingTaskIds) {
+          try {
+            const status = await api.queue.taskStatus(id);
+            stateMap.set(id, status.state);
+          } catch (e) {
+            console.error('[ImageManagement] Poll error for task', id, e);
+          }
+        }
+
+        const completed = validTasks.filter(t => {
+          const st = stateMap.get(t.taskId);
+          return st === 'SUCCESS' || st === 'FAILURE';
+        }).length;
+
+        // Update UI progress (include enqueue failures as already completed slots)
+        setAnalyzeProgressState(completed + failedEnqueue, totalImages);
+
+        if (completed + failedEnqueue >= totalImages) return true;
+        if (attempts >= maxAttempts) return true;
+        return false;
+      };
+
+      // Loop with delay
+      while (true) {
+        const done = await poll();
+        if (done) break;
+        await new Promise(r => setTimeout(r, 1000));
+      }
+
       fetchImages();
-      toast.success(`Analyzed ${totalImages} images`);
+      toast.success(`Parallel analyzed ${totalImages - failedEnqueue} images${failedEnqueue ? ` (${failedEnqueue} failed to enqueue)` : ''}`);
     } finally {
       setAnalyzingState(false);
       clearAnalyzingImages();

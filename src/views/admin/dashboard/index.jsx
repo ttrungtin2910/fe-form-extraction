@@ -199,21 +199,39 @@ const Dashboard = () => {
     setAnalyzeTotal(selected.length);
     setAnalyzeProgress(0);
     try {
-      for (let i = 0; i < selected.length; i++) {
-        const img = images.find((img) => img.ImageName === selected[i]);
-        if (!img) continue;
-        await api.formExtraction.extract({
-          ImageName: img.ImageName,
-          Size: Number(img.Size || 0),
-          ImagePath: img.ImagePath,
-          Status: img.Status,
-          CreatedAt: img.CreatedAt,
-          FolderPath: img.FolderPath || "",
-        });
-        setAnalyzeProgress(i + 1);
+      const targetImages = images.filter(img => selected.includes(img.ImageName));
+      // Dispatch all tasks in parallel
+      const dispatch = await Promise.all(targetImages.map(async img => {
+        try {
+          const r = await api.queue.extract({
+            ImageName: img.ImageName,
+            Size: Number(img.Size || 0),
+            ImagePath: img.ImagePath,
+            Status: img.Status,
+            CreatedAt: img.CreatedAt,
+            FolderPath: img.FolderPath || "",
+          });
+          return { taskId: r.task_id, image: img.ImageName };
+        } catch(e){
+          return { taskId: null, image: img.ImageName, error: e };
+        }
+      }));
+      const valid = dispatch.filter(d=>d.taskId);
+      const failed = dispatch.length - valid.length;
+      let attempts=0; const maxAttempts=180; const stateMap=new Map();
+      while(true){
+        attempts++;
+        const pending = valid.filter(v=>{ const st=stateMap.get(v.taskId); return !(st==='SUCCESS'||st==='FAILURE');});
+        if(!pending.length) break;
+        await Promise.all(pending.map(async p=>{ try{ const st= await api.queue.taskStatus(p.taskId); stateMap.set(p.taskId, st.state);}catch{}}));
+        const doneCount = valid.filter(v=>{ const st=stateMap.get(v.taskId); return st==='SUCCESS'||st==='FAILURE';}).length;
+        setAnalyzeProgress(doneCount + failed);
+        if(doneCount + failed >= dispatch.length) break;
+        if(attempts>=maxAttempts) break;
+        await new Promise(r=>setTimeout(r,1000));
       }
-      setSelected([]);
       fetchImages();
+      setSelected([]);
     } finally {
       setAnalyzing(false);
       setAnalyzeProgress(0);
@@ -465,4 +483,4 @@ const Dashboard = () => {
   );
 };
 
-export default Dashboard; 
+export default Dashboard;

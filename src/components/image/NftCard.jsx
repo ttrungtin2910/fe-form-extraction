@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Card from "components/image";
 import ImageDialog from "components/image/ImageDialog";
 
@@ -61,7 +61,7 @@ const NftCard = ({
     const sizeVal = typeof size === 'number' ? size : 0;
     
     try {
-      const result = await api.formExtraction.extract({ 
+      const queueResp = await api.queue.extract({
         ImageName: title,
         Size: sizeVal,
         ImagePath: image,
@@ -69,24 +69,32 @@ const NftCard = ({
         CreatedAt: createAt,
         FolderPath: folderPath || ""
       });
-      console.log(`[NftCard] Analysis completed for: ${title}`, result);
-      
-      // Call the parent callback if provided
-      if (onAnalyze) {
-        console.log(`[NftCard] Calling onAnalyze callback for: ${title}`);
-        onAnalyze(result);
-      }
-      
-      // Auto refresh after successful analysis
-      if (onRefresh) {
-        console.log(`[NftCard] Auto refreshing after analysis for: ${title}`);
-        onRefresh();
-      }
+      const taskId = queueResp.task_id;
+      // poll for completion
+      let attempts = 0;
+      const poll = async () => {
+        const data = await api.queue.taskStatus(taskId);
+        if (data.state === 'SUCCESS') {
+          if (onAnalyze) onAnalyze(data.result);
+          if (onRefresh) onRefresh();
+          setLoading(false);
+          return;
+        } else if (data.state === 'FAILURE') {
+          console.error('Task failed', data.error);
+          setLoading(false);
+          return;
+        } else if (attempts < 120) { // up to ~2 minutes (1s interval)
+          attempts++;
+          setTimeout(poll, 1000);
+        } else {
+          setLoading(false);
+        }
+      };
+      poll();
     } catch (error) {
       console.error(`[NftCard] Error during analysis for: ${title}`, error);
-    } finally {
       setLoading(false);
-    }
+    } 
   };
 
   const handleDeleteClick = async () => {

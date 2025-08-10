@@ -57,7 +57,8 @@ const ImageDialog = ({ open, title, image, size, status, createAt, folderPath, o
   // Helper to reload extract info
   const reloadExtractInfo = async () => {
     try {
-      const requestData = { ImageName: title };
+  // Backend chấp nhận 'title' hoặc 'ImageName'; ưu tiên dùng 'title'
+  const requestData = { title };
       const result = await api.formExtraction.getInfo(requestData);
       const formData = result?.analysis_result || result;
       setFormData(formData);
@@ -76,7 +77,7 @@ const ImageDialog = ({ open, title, image, size, status, createAt, folderPath, o
     setAnalyzing(true);
     
     try {
-      const result = await api.formExtraction.extract({ 
+      const queueResp = await api.queue.extract({ 
         ImageName: title,
         Size: typeof size === 'number' ? size : 0,
         ImagePath: image,
@@ -84,26 +85,32 @@ const ImageDialog = ({ open, title, image, size, status, createAt, folderPath, o
         CreatedAt: createAt,
         FolderPath: folderPath || ""
       });
-      console.log(`[ImageDialog] Analysis completed for: ${title}`, result);
-      
-      // Call the parent callback if provided
-      if (onAnalyze) {
-        console.log(`[ImageDialog] Calling onAnalyze callback for: ${title}`);
-        onAnalyze(result);
-      }
-      
-      // Auto refresh after successful analysis
-      if (onRefresh) {
-        console.log(`[ImageDialog] Auto refreshing after analysis for: ${title}`);
-        onRefresh();
-      }
-      // Reload extract info after analysis
-      await reloadExtractInfo();
+      const taskId = queueResp.task_id;
+      let attempts = 0;
+      const poll = async () => {
+        const data = await api.queue.taskStatus(taskId);
+        if (data.state === 'SUCCESS') {
+          if (onAnalyze) onAnalyze(data.result);
+          if (onRefresh) onRefresh();
+          await reloadExtractInfo();
+          setAnalyzing(false);
+          return;
+        } else if (data.state === 'FAILURE') {
+          console.error('Task failed', data.error);
+          setAnalyzing(false);
+          return;
+        } else if (attempts < 120) {
+          attempts++;
+          setTimeout(poll, 1000);
+        } else {
+          setAnalyzing(false);
+        }
+      };
+      poll();
     } catch (error) {
       console.error(`[ImageDialog] Error during analysis for: ${title}`, error);
-    } finally {
       setAnalyzing(false);
-    }
+    } 
   };
 
   const handleDeleteClick = async () => {

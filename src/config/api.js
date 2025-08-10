@@ -23,6 +23,16 @@ const API_CONFIG = {
     // Get form extract information
     GET_INFO: "/GetFormExtractInformation",
   },
+  
+  // Queue Management APIs
+  QUEUE: {
+    // Upload image to queue
+    UPLOAD: "/queue/upload-image",
+    // Extract form from image in queue
+    EXTRACT: "/queue/extract-form",
+    // Get task status by ID
+    TASK_STATUS: (id) => `/tasks/${id}`,
+  },
 };
 
 // Helper function to build full API URL
@@ -163,6 +173,13 @@ export const api = {
       body: JSON.stringify(data),
     }),
   },
+  
+  // Queue operations
+  queue: {
+    upload: (formData) => apiCall(API_CONFIG.QUEUE.UPLOAD, { method: 'POST', body: formData }),
+    extract: (data) => apiCall(API_CONFIG.QUEUE.EXTRACT, { method: 'POST', body: JSON.stringify(data) }),
+    taskStatus: (id) => apiCall(API_CONFIG.QUEUE.TASK_STATUS(id)),
+  },
 };
 
-export default API_CONFIG; 
+export default API_CONFIG;

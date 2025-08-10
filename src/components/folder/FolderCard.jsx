@@ -37,21 +37,54 @@ const FolderCard = ({ path, currentFolder, onNavigate, onRefresh }) => {
   const handleAnalyze = async () => {
     setProcessing(true);
     try {
-      const allImages = await api.images.getAll();
-      const images = allImages.filter(img => img.FolderPath && img.FolderPath.startsWith(path));
-      for (let i = 0; i < images.length; i++) {
-        const img = images[i];
-        await api.formExtraction.extract({
-          ImageName: img.ImageName,
-          Size: img.Size || 0,
-          ImagePath: img.ImagePath,
-          Status: img.Status,
-          CreatedAt: img.CreatedAt,
-          FolderPath: img.FolderPath || "",
+      const allImagesResp = await api.images.getAll();
+      const images = allImagesResp.data ? allImagesResp.data.filter(img => img.FolderPath && img.FolderPath.startsWith(path)) : [];
+      if(!images.length){ toast.warn('No images in folder'); setProcessing(false); return; }
+
+      // Dispatch all
+      const dispatch = await Promise.all(images.map(async img => {
+        try {
+          const r = await api.queue.extract({
+            ImageName: img.ImageName,
+            Size: img.Size || 0,
+            ImagePath: img.ImagePath,
+            Status: img.Status,
+            CreatedAt: img.CreatedAt,
+            FolderPath: img.FolderPath || "",
+          });
+          return {taskId: r.task_id, image: img.ImageName};
+        } catch(e){
+          console.error('[FolderCard] enqueue failed', img.ImageName, e);
+          return {taskId: null, image: img.ImageName, error: e};
+        }
+      }));
+
+      const valid = dispatch.filter(d=>d.taskId);
+      const failed = dispatch.length - valid.length;
+      let attempts=0; const maxAttempts=180; const stateMap=new Map();
+      const pollOnce = async () => {
+        attempts++;
+        const pending = valid.filter(v=> {
+          const st = stateMap.get(v.taskId);
+          return !(st==='SUCCESS'||st==='FAILURE');
         });
+        if(!pending.length) return true;
+        await Promise.all(pending.map(async p => {
+          try { const st = await api.queue.taskStatus(p.taskId); stateMap.set(p.taskId, st.state);} catch(e){/* ignore */}
+        }));
+        if(attempts>=maxAttempts) return true;
+        const doneCount = valid.filter(v=>{const st=stateMap.get(v.taskId); return st==='SUCCESS'||st==='FAILURE';}).length;
+        return (doneCount + failed) >= images.length;
+      };
+
+      while(true){
+        const done = await pollOnce();
+        if(done) break;
+        await new Promise(r=>setTimeout(r,1000));
       }
+
       onRefresh();
-      toast.success(`Analyzed ${images.length} images in '${folderName}'`);
+      toast.success(`Parallel analyzed ${images.length - failed} images${failed?` (${failed} failed enqueue)`:''}`);
     } finally {
       setProcessing(false);
     }

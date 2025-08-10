@@ -49,7 +49,8 @@ const UploadButton = ({ onUploadComplete, folderPath = "" }) => {
                 return;
             }
             try {
-                await api.images.upload(formData);
+                const resp = await api.queue.upload(formData); // enqueue instead of direct upload
+                console.log('Queued upload task id', resp.task_id);
                 uploaded++;
                 setUploadedCount(uploaded);
                 setUploadProgress(Math.round((uploaded / files.length) * 100));
