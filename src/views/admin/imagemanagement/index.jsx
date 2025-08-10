@@ -600,7 +600,7 @@ const ImageManagement = () => {
           </div>
         )}
 
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-3">
+  <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-4">
           {currentPage===1 && childFolders.map((fp) => (
             <FolderCard key={fp} path={fp} currentFolder={currentFolder} onNavigate={setCurrentFolder} onRefresh={handleRefresh} />
           ))}

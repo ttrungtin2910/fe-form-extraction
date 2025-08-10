@@ -144,6 +144,8 @@ const ImageDialog = ({ open, title, image, size, status, createAt, folderPath, o
         return <MdCheckCircle className="text-green-500" />;
       case "Uploaded":
         return <MdPending className="text-red-500" />;
+      case "Processing":
+        return <MdPending className="text-orange-500 animate-pulse" />;
       case "Verify":
         return <MdInfo className="text-purple-500" />;
       case "Synced":
@@ -159,6 +161,8 @@ const ImageDialog = ({ open, title, image, size, status, createAt, folderPath, o
         return "bg-green-100 text-green-800 border-green-200";
       case "Uploaded":
         return "bg-red-100 text-red-800 border-red-200";
+      case "Processing":
+        return "bg-orange-100 text-orange-800 border-orange-200";
       case "Verify":
         return "bg-purple-100 text-purple-800 border-purple-200";
       case "Synced":
@@ -275,22 +279,27 @@ const ImageDialog = ({ open, title, image, size, status, createAt, folderPath, o
                 <h3 className="text-lg font-semibold text-gray-800 mb-3">Actions</h3>
                 <div className="flex space-x-3">
                   {/* Analyze Button */}
-                  <button
-                    onClick={handleAnalyzeClick}
-                    disabled={analyzing}
-                    className={`flex-1 flex items-center justify-center rounded-lg px-4 py-3 text-sm font-medium transition-all duration-200 ${
-                      analyzing
-                        ? "bg-gray-100 text-gray-500 cursor-not-allowed"
-                        : "bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700 active:from-red-700 active:to-red-800 shadow-md hover:shadow-lg"
-                    }`}
-                  >
-                    {analyzing ? (
-                      <FaSpinner className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
-                      <FaPlayCircle className="h-4 w-4 mr-2" />
-                    )}
-                    {analyzing ? "Analyzing..." : "Analyze"}
-                  </button>
+                  {(() => {
+                    const isProcessing = analyzing || status === 'Processing';
+                    return (
+                      <button
+                        onClick={handleAnalyzeClick}
+                        disabled={isProcessing}
+                        className={`flex-1 flex items-center justify-center rounded-lg px-4 py-3 text-sm font-medium transition-all duration-200 ${
+                          isProcessing
+                            ? "bg-gray-100 text-gray-500 cursor-not-allowed"
+                            : "bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700 active:from-red-700 active:to-red-800 shadow-md hover:shadow-lg"
+                        }`}
+                      >
+                        {isProcessing ? (
+                          <FaSpinner className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <FaPlayCircle className="h-4 w-4 mr-2" />
+                        )}
+                        {isProcessing ? 'Processing' : 'Analyze'}
+                      </button>
+                    );
+                  })()}
 
                   {/* Delete Button */}
                   <button

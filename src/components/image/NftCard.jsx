@@ -29,8 +29,9 @@ const NftCard = ({
   const [loading, setLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   
-  // Local loading state for this specific image
+  // Local + persisted processing state
   const isAnalyzing = loading;
+  const isProcessing = isAnalyzing || status === 'Processing';
 
   const toast = useToast();
   const confirmModal = useConfirm();
@@ -137,6 +138,8 @@ const NftCard = ({
         return <MdCheckCircle className="text-green-500" />;
       case "Uploaded":
         return <MdPending className="text-red-500" />;
+      case "Processing":
+        return <MdPending className="text-orange-500 animate-pulse" />;
       case "Verify":
         return <MdInfo className="text-purple-500" />;
       case "Synced":
@@ -152,6 +155,8 @@ const NftCard = ({
         return "bg-green-100 text-green-800 border-green-200";
       case "Uploaded":
         return "bg-red-100 text-red-800 border-red-200";
+      case "Processing":
+        return "bg-orange-100 text-orange-800 border-orange-200";
       case "Verify":
         return "bg-purple-100 text-purple-800 border-purple-200";
       case "Synced":
@@ -263,19 +268,19 @@ const NftCard = ({
             {/* Analyze Button */}
             <button
               onClick={handleAnalyzeClick}
-              disabled={isAnalyzing}
+              disabled={isProcessing}
               className={`flex-1 flex items-center justify-center rounded-lg px-4 py-2.5 text-sm font-medium transition-all duration-200 ${
-                isAnalyzing
+                isProcessing
                   ? "bg-gray-100 text-gray-500 cursor-not-allowed"
                   : "bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700 active:from-red-700 active:to-red-800 shadow-md hover:shadow-lg"
               }`}
             >
-              {isAnalyzing ? (
+              {isProcessing ? (
                 <FaSpinner className="h-4 w-4 mr-2 animate-spin" />
               ) : (
                 <FaPlayCircle className="h-4 w-4 mr-2" />
               )}
-              {isAnalyzing ? "Analyzing..." : "Analyze"}
+              {isProcessing ? "Processing" : "Analyze"}
             </button>
 
             {/* Delete Button */}

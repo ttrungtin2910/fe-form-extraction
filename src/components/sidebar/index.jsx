@@ -79,7 +79,7 @@ const Sidebar = ({ open, onClose }) => {
               <FaPlayCircle className="h-4 w-4 mr-2" />
             )}
             {isAnalyzing 
-              ? `Analyzing... (${analyzeProgress.completed}/${analyzeProgress.total})`
+              ? `Processing... (${analyzeProgress.completed}/${analyzeProgress.total})`
               : `Analyze Selected (${selectedImages.size})`
             }
           </button>

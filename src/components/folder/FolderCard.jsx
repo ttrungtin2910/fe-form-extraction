@@ -115,7 +115,14 @@ const FolderCard = ({ path, currentFolder, onNavigate, onRefresh }) => {
       )}
       {/* Action buttons */}
       <div className="absolute top-2 right-2 flex gap-2 opacity-60 group-hover:opacity-100 transition-opacity">
-        <button onClick={(e)=>{e.stopPropagation();handleAnalyze();}} disabled={processing} className="p-1 bg-brand-500 hover:bg-brand-600 rounded text-white text-xs"><MdPlayArrow/></button>
+        <button onClick={(e)=>{e.stopPropagation();handleAnalyze();}} disabled={processing} className="p-1 bg-brand-500 hover:bg-brand-600 rounded text-white text-xs min-w-[70px] flex items-center justify-center gap-1">
+          {processing ? (
+            <svg className="animate-spin h-3 w-3 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path></svg>
+          ) : (
+            <MdPlayArrow/>
+          )}
+          {processing ? 'Processing' : 'Analyze'}
+        </button>
         <button onClick={(e)=>{e.stopPropagation();handleDelete();}} disabled={processing} className="p-1 bg-red-500 hover:bg-red-600 rounded text-white text-xs"><MdDelete/></button>
       </div>
       {processing && (
