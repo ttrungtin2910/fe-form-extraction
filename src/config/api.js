@@ -72,8 +72,12 @@ export const apiCall = async (endpoint, options = {}) => {
     defaultHeaders['Content-Type'] = 'application/json';
   }
   
-  // Add authentication header if API key is configured
-  if (API_CONFIG.API_KEY) {
+  // Add authentication header
+  // Priority: User JWT token > API Key
+  const userToken = localStorage.getItem('token');
+  if (userToken) {
+    defaultHeaders['Authorization'] = `Bearer ${userToken}`;
+  } else if (API_CONFIG.API_KEY) {
     defaultHeaders['Authorization'] = `Bearer ${API_CONFIG.API_KEY}`;
   }
   
@@ -143,6 +147,16 @@ export const apiCall = async (endpoint, options = {}) => {
 
 // Specific API functions for common operations
 export const api = {
+  // Auth operations
+  auth: {
+    login: (username, password) => apiCall('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ username, password }),
+    }),
+    logout: () => apiCall('/auth/logout', { method: 'POST' }),
+    getCurrentUser: () => apiCall('/auth/me'),
+  },
+
   // Image operations
   images: {
     getAll: ({page=1,limit=20}={}) => apiCall(`${API_CONFIG.IMAGES.GET_ALL}?page=${page}&limit=${limit}`),
