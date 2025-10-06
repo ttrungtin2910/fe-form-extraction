@@ -6,6 +6,7 @@ import { FaPlayCircle, FaSpinner, FaTrash } from "react-icons/fa";
 import DisplayStudentForm from "components/form/StudentForm";
 import { api } from "config/api";
 import { useToast, useConfirm } from "components/common/ToastProvider";
+import { POLLING_CONFIG } from "../../config/polling";
 
 // Empty form as fallback
 const emptyForm = {
@@ -101,7 +102,7 @@ const ImageDialog = ({ open, title, image, size, status, createAt, folderPath, o
           return;
         } else if (attempts < 120) {
           attempts++;
-          setTimeout(poll, 1000);
+          setTimeout(poll, POLLING_CONFIG.TASK_STATUS_INTERVAL);
         } else {
           setAnalyzing(false);
         }

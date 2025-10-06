@@ -6,12 +6,14 @@ import AdminLayout from "layouts/admin";
 import AuthLayout from "layouts/auth";
 import ProtectedRoute from "components/ProtectedRoute";
 import { useAuth } from "contexts/AuthContext";
+import { ActivityLoggerProvider } from "components/ActivityLogger";
 
 const App = () => {
   const { isAuthenticated } = useAuth();
 
   return (
-    <Routes>
+    <ActivityLoggerProvider>
+      <Routes>
       <Route path="auth/*" element={<AuthLayout />} />
       <Route
         path="admin/*"
@@ -40,6 +42,7 @@ const App = () => {
         }
       />
     </Routes>
+    </ActivityLoggerProvider>
   );
 };
 

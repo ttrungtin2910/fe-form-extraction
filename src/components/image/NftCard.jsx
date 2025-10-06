@@ -8,6 +8,7 @@ import { MdCheckBox, MdCheckBoxOutlineBlank } from "react-icons/md";
 import { MdStorage, MdCalendarToday, MdCheckCircle, MdPending, MdInfo, MdError } from "react-icons/md";
 import { api } from "config/api";
 import { useImageManagement } from "contexts/ImageManagementContext";
+import { POLLING_CONFIG } from "../../config/polling";
 import { useToast, useConfirm } from "components/common/ToastProvider";
 
 const NftCard = ({ 
@@ -86,7 +87,7 @@ const NftCard = ({
           return;
         } else if (attempts < 120) { // up to ~2 minutes (1s interval)
           attempts++;
-          setTimeout(poll, 1000);
+          setTimeout(poll, POLLING_CONFIG.TASK_STATUS_INTERVAL);
         } else {
           setLoading(false);
         }

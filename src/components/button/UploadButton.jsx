@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { MdCloudUpload, MdCheckCircle, MdError } from "react-icons/md";
 import { api } from "config/api";
+import { POLLING_CONFIG } from "../../config/polling";
 
 const UploadButton = ({ onUploadComplete, folderPath = "" }) => {
     const inputRef = useRef(null);
@@ -76,7 +77,7 @@ const UploadButton = ({ onUploadComplete, folderPath = "" }) => {
                 if(!st || (st.state!=='SUCCESS' && st.state!=='FAILURE')) allDone=false; else if(st.state==='SUCCESS'){ if(!uploadsInfo.find(u=>u.taskId===uploadTaskIds[idx])) uploadsInfo.push({taskId:uploadTaskIds[idx], ...st.result}); }
             });
             if(allDone) break;
-            await new Promise(r=>setTimeout(r,1000));
+            await new Promise(r=>setTimeout(r,POLLING_CONFIG.UPLOAD_INTERVAL));
         }
         // Start extraction for successfully uploaded images
         const toExtract = uploadsInfo.filter(u=>u && u.image_name && u.url);
@@ -97,7 +98,7 @@ const UploadButton = ({ onUploadComplete, folderPath = "" }) => {
             } catch(e){ return {taskId:null,image:meta.image_name,error:e}; }
         }));
         // Poll extraction tasks
-        let doneCount=0; attempts=0; const maxAttemptsExtract=300; const stateMap=new Map();
+        let doneCount=0; attempts=0; const maxAttemptsExtract=POLLING_CONFIG.MAX_EXTRACT_ATTEMPTS; const stateMap=new Map();
         while(attempts < maxAttemptsExtract){
             attempts++;
             const pending = extractTasks.filter(t=>t.taskId && !(stateMap.get(t.taskId)==='SUCCESS'||stateMap.get(t.taskId)==='FAILURE'));
@@ -106,7 +107,7 @@ const UploadButton = ({ onUploadComplete, folderPath = "" }) => {
             doneCount = extractTasks.filter(t=> t.taskId && ['SUCCESS','FAILURE'].includes(stateMap.get(t.taskId))).length + extractTasks.filter(t=>!t.taskId).length;
             setExtractProgress({done:doneCount,total:extractTasks.length});
             if(doneCount>=extractTasks.length) break;
-            await new Promise(r=>setTimeout(r,1000));
+            await new Promise(r=>setTimeout(r,POLLING_CONFIG.UPLOAD_INTERVAL));
         }
         setUploadStatus("done");
         setPhase('done');

@@ -3,6 +3,7 @@ import { api } from "config/api";
 import { api as apiFE } from "config/api";
 import { useEffect, useState } from "react";
 import { useToast, useConfirm } from "components/common/ToastProvider";
+import { POLLING_CONFIG } from "../../config/polling";
 
 const FolderCard = ({ path, currentFolder, onNavigate, onRefresh }) => {
   const folderName = path.split("/").pop();
@@ -80,7 +81,7 @@ const FolderCard = ({ path, currentFolder, onNavigate, onRefresh }) => {
       while(true){
         const done = await pollOnce();
         if(done) break;
-        await new Promise(r=>setTimeout(r,1000));
+        await new Promise(r=>setTimeout(r,POLLING_CONFIG.TASK_STATUS_INTERVAL));
       }
 
       onRefresh();

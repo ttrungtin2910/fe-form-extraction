@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "config/api";
+import { POLLING_CONFIG } from "config/polling";
 import UploadButton from "components/button/UploadButton";
 import { FiRefreshCw, FiChevronUp, FiChevronDown } from "react-icons/fi";
 import { MdCheckBox, MdCheckBoxOutlineBlank } from "react-icons/md";
@@ -228,7 +229,7 @@ const Dashboard = () => {
         setAnalyzeProgress(doneCount + failed);
         if(doneCount + failed >= dispatch.length) break;
         if(attempts>=maxAttempts) break;
-        await new Promise(r=>setTimeout(r,1000));
+        await new Promise(r=>setTimeout(r,POLLING_CONFIG.TASK_STATUS_INTERVAL));
       }
       fetchImages();
       setSelected([]);

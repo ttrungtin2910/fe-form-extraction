@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import api from '../../config/api';
+import { POLLING_CONFIG } from '../config/polling';
 
 /**
  * Custom hook for managing image analysis tasks with optimized polling
@@ -58,8 +59,8 @@ export const useImageAnalysis = () => {
    */
   const pollTaskStatus = useCallback(async (taskIds, options = {}) => {
     const {
-      maxAttempts = 300, // 5 minutes with 1s intervals
-      interval = 1000,
+      maxAttempts = POLLING_CONFIG.MAX_ANALYSIS_ATTEMPTS,
+      interval = POLLING_CONFIG.ANALYSIS_INTERVAL,
       onProgress = () => {},
       onTaskComplete = () => {}
     } = options;

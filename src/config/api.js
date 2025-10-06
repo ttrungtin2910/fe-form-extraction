@@ -181,6 +181,13 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ oldPath, newPath })
     }),
+    getActivityLogs: (params = '') => apiCall(`/activity-logs${params}`),
+    getMyActivityLogs: (params = '') => apiCall(`/activity-logs/my-activity${params}`),
+    getActivitySummary: (params = '') => apiCall(`/activity-logs/summary${params}`),
+    cleanupActivityLogs: (daysToKeep) => apiCall('/activity-logs/cleanup', {
+      method: 'POST',
+      body: JSON.stringify({ days_to_keep: daysToKeep }),
+    }),
   },
   
   // Form extraction operations

@@ -8,6 +8,7 @@ import { api } from "config/api";
 import { useImageManagement } from "contexts/ImageManagementContext";
 import FolderModal from "components/folder/FolderModal";
 import { useToast, useConfirm } from "components/common/ToastProvider";
+import { POLLING_CONFIG } from "config/polling";
 
 const ImageManagement = () => {
   const [images, setImages] = useState([]);
@@ -320,7 +321,7 @@ const ImageManagement = () => {
       while (true) {
         const done = await poll();
         if (done) break;
-        await new Promise(r => setTimeout(r, 1000));
+        await new Promise(r => setTimeout(r, POLLING_CONFIG.ANALYSIS_INTERVAL));
       }
 
       fetchImages();

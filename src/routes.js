@@ -9,6 +9,7 @@ import Profile from "views/admin/profile";
 import DataTables from "views/admin/tables";
 import RTLDefault from "views/rtl/default";
 import Synchronization from "views/admin/Synchronization";
+import ActivityLogs from "views/admin/ActivityLogs";
 
 // Auth Imports
 import SignIn from "views/auth/SignIn";
@@ -21,6 +22,7 @@ import {
   MdPerson,
   MdLock,
   MdSync,
+  MdHistory,
 } from "react-icons/md";
 
 import { IoIosDocument } from "react-icons/io";
@@ -47,6 +49,13 @@ const routes = [
     path: "synchronization",
     icon: <MdSync className="h-6 w-6" />,
     component: <Synchronization />,
+  },
+  {
+    name: "Activity Logs",
+    layout: "/admin",
+    path: "activity-logs",
+    icon: <MdHistory className="h-6 w-6" />,
+    component: <ActivityLogs />,
   },
   // {
   //   name: "Main Dashboard",
