@@ -286,15 +286,22 @@ const ImageManagement = () => {
         });
         if (!pendingTaskIds.length) return true; // all done
 
-        // Fetch statuses sequentially to avoid burst (could batch Promise.all if acceptable)
-        for (const id of pendingTaskIds) {
-          try {
-            const status = await api.queue.taskStatus(id);
-            stateMap.set(id, status.state);
-          } catch (e) {
-            console.error('[ImageManagement] Poll error for task', id, e);
+        // Fetch statuses in parallel using Promise.allSettled for better performance
+        const statusPromises = pendingTaskIds.map(id => 
+          api.queue.taskStatus(id)
+            .then(status => ({ id, status: status.state, success: true }))
+            .catch(error => ({ id, error, success: false }))
+        );
+
+        const results = await Promise.allSettled(statusPromises);
+        
+        results.forEach(result => {
+          if (result.status === 'fulfilled' && result.value.success) {
+            stateMap.set(result.value.id, result.value.status);
+          } else if (result.status === 'fulfilled' && !result.value.success) {
+            console.error('[ImageManagement] Poll error for task', result.value.id, result.value.error);
           }
-        }
+        });
 
         const completed = validTasks.filter(t => {
           const st = stateMap.get(t.taskId);

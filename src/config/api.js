@@ -1,7 +1,9 @@
 // API Configuration
 const API_CONFIG = {
-  // Base URL for all API calls
-  BASE_URL: "http://localhost:8000",
+  // Base URL for all API calls - use environment variable if available
+  BASE_URL: process.env.REACT_APP_API_URL || "http://localhost:8000",
+  // API Key for authentication - should be set via environment variable
+  API_KEY: process.env.REACT_APP_API_KEY || "",
   
   // Image Management APIs
   IMAGES: {
@@ -68,6 +70,11 @@ export const apiCall = async (endpoint, options = {}) => {
   const defaultHeaders = {};
   if (!(options.body instanceof FormData)) {
     defaultHeaders['Content-Type'] = 'application/json';
+  }
+  
+  // Add authentication header if API key is configured
+  if (API_CONFIG.API_KEY) {
+    defaultHeaders['Authorization'] = `Bearer ${API_CONFIG.API_KEY}`;
   }
   
   const defaultOptions = {
