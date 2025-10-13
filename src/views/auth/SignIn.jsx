@@ -33,7 +33,7 @@ function SignIn() {
       toast.success(`Welcome back, ${username}!`);
 
       // Navigate to dashboard
-      navigate("/admin/default");
+      navigate("/admin/dashboard");
     } catch (error) {
       console.error("Login error:", error);
       toast.error(error.message || "Incorrect username or password");

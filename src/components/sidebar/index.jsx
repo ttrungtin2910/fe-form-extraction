@@ -2,14 +2,19 @@
 
 import { HiX } from "react-icons/hi";
 import { FaPlayCircle, FaTrash, FaSpinner } from "react-icons/fa";
+import { MdLogout } from "react-icons/md";
 import Links from "./components/Links";
+import { useNavigate } from "react-router-dom";
 
 import SidebarCard from "components/sidebar/componentsrtl/SidebarCard";
 import routes from "routes.js";
 import cosariLogo from "assets/img/logo/COSARI.png";
 import { useImageManagement } from "contexts/ImageManagementContext";
+import { useAuth } from "contexts/AuthContext";
 
 const Sidebar = ({ open, onClose }) => {
+  const navigate = useNavigate();
+  const { logout, user } = useAuth();
   const { 
     selectedImages, 
     analyzeFunction, 
@@ -29,6 +34,11 @@ const Sidebar = ({ open, onClose }) => {
     if (deleteFunction) {
       deleteFunction();
     }
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate("/auth/sign-in");
   };
 
   return (
@@ -104,9 +114,22 @@ const Sidebar = ({ open, onClose }) => {
         </div>
       </div>
 
-      {/* Free Horizon Card */}
-      <div className="flex justify-center">
-        <SidebarCard />
+      {/* Logout Button */}
+      <div className="px-4 mb-4">
+        <div className="border-t border-gray-300 dark:border-white/30 pt-4">
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center justify-center px-4 py-3 rounded-xl text-white bg-red-500 hover:bg-red-600 active:bg-red-700 transition duration-200"
+          >
+            <MdLogout className="h-5 w-5 mr-2" />
+            Logout
+          </button>
+          {user && (
+            <p className="text-xs text-center text-gray-600 dark:text-gray-400 mt-2">
+              Signed in as <span className="font-medium">{user.username}</span>
+            </p>
+          )}
+        </div>
       </div>
 
       {/* Nav item end */}

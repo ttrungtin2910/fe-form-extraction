@@ -2,29 +2,11 @@ import React from "react";
 
 // Admin Imports
 import Dashboard from "views/admin/dashboard";
-import MainDashboard from "views/admin/default";
 import ImageManagement from "views/admin/imagemanagement";
-import NFTMarketplace from "views/admin/marketplace";
-import Profile from "views/admin/profile";
-import DataTables from "views/admin/tables";
-import RTLDefault from "views/rtl/default";
 import Synchronization from "views/admin/Synchronization";
-import ActivityLogs from "views/admin/ActivityLogs";
-
-// Auth Imports
-import SignIn from "views/auth/SignIn";
 
 // Icon Imports
-import {
-  MdHome,
-  MdOutlineShoppingCart,
-  MdBarChart,
-  MdPerson,
-  MdLock,
-  MdSync,
-  MdHistory,
-} from "react-icons/md";
-
+import { MdSync } from "react-icons/md";
 import { IoIosDocument } from "react-icons/io";
 import { MdDashboard } from "react-icons/md";
 
@@ -49,13 +31,6 @@ const routes = [
     path: "synchronization",
     icon: <MdSync className="h-6 w-6" />,
     component: <Synchronization />,
-  },
-  {
-    name: "Activity Logs",
-    layout: "/admin",
-    path: "activity-logs",
-    icon: <MdHistory className="h-6 w-6" />,
-    component: <ActivityLogs />,
   },
   // {
   //   name: "Main Dashboard",
@@ -86,13 +61,6 @@ const routes = [
   //   icon: <MdPerson className="h-6 w-6" />,
   //   component: <Profile />,
   // },
-  {
-    name: "Sign In",
-    layout: "/auth",
-    path: "sign-in",
-    icon: <MdLock className="h-6 w-6" />,
-    component: <SignIn />,
-  },
   // {
   //   name: "RTL Admin",
   //   layout: "/rtl",

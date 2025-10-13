@@ -34,13 +34,47 @@ function getStatusStats(images) {
   return stats;
 }
 
+// Format date to readable format
+const formatDate = (dateString) => {
+  if (!dateString) return "N/A";
+  
+  try {
+    // Check if it's in format: 20250804_024535_110625 (YYYYMMDD_HHMMSS_microseconds)
+    const customFormatMatch = dateString.match(/^(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})_\d+$/);
+    if (customFormatMatch) {
+      const [, year, month, day, hours, minutes] = customFormatMatch;
+      return `${day}/${month}/${year} ${hours}:${minutes}`;
+    }
+    
+    // Try standard date parsing
+    const date = new Date(dateString);
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      return dateString; // Return original if invalid
+    }
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${day}/${month}/${year} ${hours}:${minutes}`;
+  } catch (e) {
+    return dateString;
+  }
+};
+
 const Dashboard = () => {
   const [images, setImages] = useState([]);
+  const [extractedData, setExtractedData] = useState({}); // Store extracted form data
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selected, setSelected] = useState([]);
   const [sortBy, setSortBy] = useState("ImageName");
   const [sortDir, setSortDir] = useState("asc");
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   // State for non-blocking analysis progress
   const [analyzing, setAnalyzing] = useState(false);
@@ -63,7 +97,30 @@ const Dashboard = () => {
     setError(null);
     try {
       const resp = await api.images.getAll({page:1,limit:100});
-      setImages(resp.data || []);
+      const imagesList = resp.data || [];
+      setImages(imagesList);
+      
+      // Fetch extracted data for completed images
+      const extractionPromises = imagesList
+        .filter(img => img.Status === 'Completed')
+        .map(async (img) => {
+          try {
+            const formData = await api.formExtraction.getInfo({ ImageName: img.ImageName });
+            return { imageName: img.ImageName, data: formData };
+          } catch (err) {
+            console.error(`Failed to fetch extraction data for ${img.ImageName}:`, err);
+            return { imageName: img.ImageName, data: null };
+          }
+        });
+      
+      const extractionResults = await Promise.all(extractionPromises);
+      const extractionMap = {};
+      extractionResults.forEach(({ imageName, data }) => {
+        if (data && data.analysis_result) {
+          extractionMap[imageName] = data.analysis_result;
+        }
+      });
+      setExtractedData(extractionMap);
     } catch (err) {
       setError("Failed to fetch images");
     } finally {
@@ -130,6 +187,17 @@ const Dashboard = () => {
     if (aVal > bVal) return sortDir === "asc" ? 1 : -1;
     return 0;
   });
+
+  // Pagination logic
+  const totalPages = Math.ceil(sortedImages.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedImages = sortedImages.slice(startIndex, endIndex);
+
+  // Reset to page 1 when images change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [images.length]);
 
   // Stats for overview
   const statusStats = getStatusStats(images);
@@ -391,6 +459,8 @@ const Dashboard = () => {
           </button>
           <span className="ml-auto text-sm text-gray-500">
             Selected: <span className="font-semibold text-gray-700">{selected.length}</span>
+            <span className="mx-2">|</span>
+            Page <span className="font-semibold text-gray-700">{currentPage}</span> of <span className="font-semibold text-gray-700">{totalPages}</span>
           </span>
         </div>
         {loading ? (
@@ -402,6 +472,9 @@ const Dashboard = () => {
             <table className="min-w-full divide-y divide-gray-100">
               <thead className="bg-gray-100">
                 <tr>
+                  <th className="px-3 py-2 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">
+                    STT
+                  </th>
                   <th className="px-3 py-2">
                     <button
                       onClick={handleSelectAll}
@@ -419,13 +492,38 @@ const Dashboard = () => {
                     className="px-3 py-2 text-left text-xs font-bold text-gray-700 uppercase tracking-wider cursor-pointer select-none"
                     onClick={() => handleSort("ImageName")}
                   >
-                    Title {sortIcon("ImageName", sortBy, sortDir)}
+                    Image Name {sortIcon("ImageName", sortBy, sortDir)}
                   </th>
                   <th
                     className="px-3 py-2 text-left text-xs font-bold text-gray-700 uppercase tracking-wider cursor-pointer select-none"
                     onClick={() => handleSort("Status")}
                   >
                     Status {sortIcon("Status", sortBy, sortDir)}
+                  </th>
+                  <th
+                    className="px-3 py-2 text-left text-xs font-bold text-gray-700 uppercase tracking-wider"
+                  >
+                    Họ và Tên
+                  </th>
+                  <th
+                    className="px-3 py-2 text-left text-xs font-bold text-gray-700 uppercase tracking-wider"
+                  >
+                    CCCD
+                  </th>
+                  <th
+                    className="px-3 py-2 text-left text-xs font-bold text-gray-700 uppercase tracking-wider"
+                  >
+                    Điện thoại
+                  </th>
+                  <th
+                    className="px-3 py-2 text-left text-xs font-bold text-gray-700 uppercase tracking-wider"
+                  >
+                    Email
+                  </th>
+                  <th
+                    className="px-3 py-2 text-left text-xs font-bold text-gray-700 uppercase tracking-wider"
+                  >
+                    Trường THPT
                   </th>
                   <th
                     className="px-3 py-2 text-left text-xs font-bold text-gray-700 uppercase tracking-wider cursor-pointer select-none"
@@ -436,47 +534,135 @@ const Dashboard = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-100">
-                {sortedImages.map((img, idx) => (
-                  <tr
-                    key={img.ImageName || idx}
-                    className={
-                      selected.includes(img.ImageName)
-                        ? "bg-red-50/60 hover:bg-red-100/80"
-                        : "hover:bg-gray-50 transition"
-                    }
-                  >
-                    <td className="px-3 py-2">
-                      <button
-                        onClick={() => handleSelectRow(img.ImageName)}
-                        className="focus:outline-none"
-                        aria-label={selected.includes(img.ImageName) ? "Unselect" : "Select"}
-                      >
-                        {selected.includes(img.ImageName) ? (
-                          <MdCheckBox className="w-5 h-5 text-red-500 transition" />
-                        ) : (
-                          <MdCheckBoxOutlineBlank className="w-5 h-5 text-gray-400 hover:text-red-500 transition" />
-                        )}
-                      </button>
-                    </td>
-                    <td className="px-3 py-2 font-medium text-gray-900 text-sm">
-                      {img.ImageName}
-                    </td>
-                    <td className="px-3 py-2">
-                      <span
-                        className={`inline-block px-3 py-1 rounded-full text-xs font-bold border shadow-sm ${statusColor(
-                          img.Status
-                        )}`}
-                      >
-                        {img.Status}
-                      </span>
-                    </td>
-                    <td className="px-3 py-2 text-gray-500 text-xs">
-                      {img.CreatedAt}
-                    </td>
-                  </tr>
-                ))}
+                {paginatedImages.map((img, idx) => {
+                  const extracted = extractedData[img.ImageName] || {};
+                  const rowNumber = startIndex + idx + 1;
+                  return (
+                    <tr
+                      key={img.ImageName || idx}
+                      className={
+                        selected.includes(img.ImageName)
+                          ? "bg-red-50/60 hover:bg-red-100/80"
+                          : "hover:bg-gray-50 transition"
+                      }
+                    >
+                      <td className="px-3 py-2 text-center text-sm font-medium text-gray-600">
+                        {rowNumber}
+                      </td>
+                      <td className="px-3 py-2">
+                        <button
+                          onClick={() => handleSelectRow(img.ImageName)}
+                          className="focus:outline-none"
+                          aria-label={selected.includes(img.ImageName) ? "Unselect" : "Select"}
+                        >
+                          {selected.includes(img.ImageName) ? (
+                            <MdCheckBox className="w-5 h-5 text-red-500 transition" />
+                          ) : (
+                            <MdCheckBoxOutlineBlank className="w-5 h-5 text-gray-400 hover:text-red-500 transition" />
+                          )}
+                        </button>
+                      </td>
+                      <td className="px-3 py-2 font-medium text-gray-900 text-sm">
+                        {img.ImageName}
+                      </td>
+                      <td className="px-3 py-2">
+                        <span
+                          className={`inline-block px-3 py-1 rounded-full text-xs font-bold border shadow-sm ${statusColor(
+                            img.Status
+                          )}`}
+                        >
+                          {img.Status}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2 text-gray-700 text-sm">
+                        {extracted.ho_va_ten || "-"}
+                      </td>
+                      <td className="px-3 py-2 text-gray-700 text-sm">
+                        {extracted.cccd || "-"}
+                      </td>
+                      <td className="px-3 py-2 text-gray-700 text-sm">
+                        {extracted.dien_thoai || "-"}
+                      </td>
+                      <td className="px-3 py-2 text-gray-700 text-sm">
+                        {extracted.email || "-"}
+                      </td>
+                      <td className="px-3 py-2 text-gray-700 text-sm">
+                        {extracted.truong_thpt || "-"}
+                      </td>
+                      <td className="px-3 py-2 text-gray-500 text-xs whitespace-nowrap">
+                        {formatDate(img.CreatedAt)}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200">
+                <div className="text-sm text-gray-600">
+                  Showing <span className="font-semibold">{startIndex + 1}</span> to <span className="font-semibold">{Math.min(endIndex, sortedImages.length)}</span> of <span className="font-semibold">{sortedImages.length}</span> results
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                    className={`px-4 py-2 rounded-lg border text-sm font-medium transition ${
+                      currentPage === 1
+                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed border-gray-200'
+                        : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    Previous
+                  </button>
+                  
+                  <div className="flex gap-1">
+                    {[...Array(totalPages)].map((_, i) => {
+                      const page = i + 1;
+                      // Show first page, last page, current page, and pages around current
+                      if (
+                        page === 1 ||
+                        page === totalPages ||
+                        (page >= currentPage - 1 && page <= currentPage + 1)
+                      ) {
+                        return (
+                          <button
+                            key={page}
+                            onClick={() => setCurrentPage(page)}
+                            className={`px-3 py-2 rounded-lg text-sm font-medium transition ${
+                              currentPage === page
+                                ? 'bg-brand-500 text-white'
+                                : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                            }`}
+                          >
+                            {page}
+                          </button>
+                        );
+                      } else if (
+                        page === currentPage - 2 ||
+                        page === currentPage + 2
+                      ) {
+                        return <span key={page} className="px-2 py-2 text-gray-400">...</span>;
+                      }
+                      return null;
+                    })}
+                  </div>
+
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                    disabled={currentPage === totalPages}
+                    className={`px-4 py-2 rounded-lg border text-sm font-medium transition ${
+                      currentPage === totalPages
+                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed border-gray-200'
+                        : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
