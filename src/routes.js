@@ -5,6 +5,9 @@ import Dashboard from "views/admin/dashboard";
 import ImageManagement from "views/admin/imagemanagement";
 import Synchronization from "views/admin/Synchronization";
 
+// Auth Imports
+import SignIn from "views/auth/SignIn";
+
 // Icon Imports
 import { MdSync } from "react-icons/md";
 import { IoIosDocument } from "react-icons/io";
@@ -31,6 +34,14 @@ const routes = [
     path: "synchronization",
     icon: <MdSync className="h-6 w-6" />,
     component: <Synchronization />,
+  },
+  // Hidden routes (not shown in sidebar)
+  {
+    name: "Sign In",
+    layout: "/auth",
+    path: "sign-in",
+    component: <SignIn />,
+    hidden: true, // Don't show in sidebar
   },
   // {
   //   name: "Main Dashboard",
