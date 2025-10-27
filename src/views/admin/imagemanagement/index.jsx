@@ -64,11 +64,6 @@ const ImageManagement = () => {
       });
       setChildFolders(childFoldersLocal);
 
-      // Only calculate pages for images, folders are always shown on page 1
-      const totalImages=resp.total||0;
-      const totalPagesCalc=Math.max(1,Math.ceil(totalImages/itemsPerPage));
-      setTotalPages(totalPagesCalc);
-      
       console.log("[ImageManagement] Raw images data received:", data);
       
       const validImages = data.filter(
@@ -76,10 +71,25 @@ const ImageManagement = () => {
       );
       console.log("[ImageManagement] Valid images filtered:", validImages.length);
       
-      // At root view, only show images without FolderPath (i.e., residing in root)
-      const scopedImages = currentFolder
-        ? validImages // already filtered by API
-        : validImages.filter((img) => !img.FolderPath);
+      // Additional frontend filter to ensure only root images are shown
+      const scopedImages = currentFolder 
+        ? validImages // already filtered by API for specific folder
+        : validImages.filter(img => {
+            const folderPath = img.FolderPath;
+            return !folderPath || folderPath === "" || folderPath.trim() === "";
+          });
+      
+      console.log("[ImageManagement] After filtering:", {
+        total: validImages.length,
+        scoped: scopedImages.length,
+        currentFolder,
+        sampleFolderPaths: validImages.slice(0, 3).map(img => img.FolderPath)
+      });
+      
+      // Use scoped images count for pagination
+      const totalImages = scopedImages.length;
+      const totalPagesCalc = Math.max(1, Math.ceil(totalImages / itemsPerPage));
+      setTotalPages(totalPagesCalc);
       
       // Sort images based on sortField and sortOrder
       const sortedImages = scopedImages.sort((a, b) => {
@@ -480,26 +490,86 @@ const ImageManagement = () => {
       <div className="p-4">
         <div className="flex items-center justify-between mb-6">
           {/* Removed redundant title - already in breadcrumb */}
-          <div className="flex items-center gap-3">
-            {/* Select All Button */}
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+          {/* Left: Primary Actions */}
+          <div className="flex items-center gap-3 flex-wrap">
+            {/* Upload Button - MOST IMPORTANT */}
+            <UploadButton onUploadComplete={handleRefresh} folderPath={currentFolder} />
+
+            {/* New Folder */}
+            <button
+              onClick={() => {
+                setNewFolderName("");
+                setModalError("");
+                setShowNewFolderModal(true);
+              }}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-600 hover:to-indigo-700 shadow-lg hover:shadow-xl transition text-sm"
+            >
+              <FaPlus className="h-4 w-4" /> 
+              <span className="font-medium">Thư mục mới</span>
+            </button>
+
+            {currentFolder && (
+              <>
+                <button
+                  onClick={() => {
+                    setRenameInput(currentFolder.split("/").pop());
+                    setModalType('rename');
+                    setShowFolderModal(true);
+                  }}
+                  className="flex items-center gap-1 px-3 py-2 rounded-lg bg-yellow-500 text-white hover:bg-yellow-600 shadow-sm text-sm"
+                >
+                  <MdEdit className="h-4 w-4" /> Đổi tên
+                </button>
+
+                <button
+                  onClick={() => {
+                    setModalType('delete');
+                    setShowFolderModal(true);
+                  }}
+                  className="flex items-center gap-1 px-3 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600 shadow-sm text-sm"
+                >
+                  <MdDelete className="h-4 w-4" /> Xóa
+                </button>
+              </>
+            )}
+          </div>
+
+          {/* Right: Secondary Actions */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <button
+              onClick={() => setCurrentFolder("")}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 transition text-sm"
+            >
+              <IoHomeOutline className="h-4 w-4" /> 
+              <span>Tất cả</span>
+            </button>
+
+            <select
+              value={currentFolder}
+              onChange={handleFolderChange}
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 bg-white"
+            >
+              <option value="">Chọn thư mục...</option>
+              {folders.map((f) => {
+                const depth = f.split("/").length - 1;
+                const name = f.split("/").pop();
+                return (
+                  <option key={f} value={f}>{`${"\u00A0".repeat(depth*2)}${name}`}</option>
+                );
+              })}
+            </select>
+
+            <div className="h-6 w-px bg-gray-300"></div>
+
             <button
               onClick={handleSelectAll}
-              className={`flex items-center px-4 py-2 rounded-xl text-white transition duration-200 ${
-                selectedImages.size === images.length && images.length > 0
-                  ? "bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 active:from-red-700 active:to-red-800"
-                  : "bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 active:from-red-700 active:to-red-800"
-              }`}
+              className="flex items-center px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 transition text-sm"
             >
               {selectedImages.size === images.length && images.length > 0 ? (
-                <>
-                  <MdCheckBox className="h-4 w-4 mr-2" />
-                  Bỏ chọn tất cả
-                </>
+                <MdCheckBox className="h-4 w-4" />
               ) : (
-                <>
-                  <MdCheckBoxOutlineBlank className="h-4 w-4 mr-2" />
-                  Chọn tất cả
-                </>
+                <MdCheckBoxOutlineBlank className="h-4 w-4" />
               )}
             </button>
 
@@ -507,15 +577,15 @@ const ImageManagement = () => {
             <div className="relative sort-dropdown">
               <button
                 onClick={() => setShowSortMenu(!showSortMenu)}
-                className="flex items-center px-4 py-2 rounded-xl bg-gradient-to-r from-red-500 to-red-600 text-white transition duration-200 hover:from-red-600 hover:to-red-700 active:from-red-700 active:to-red-800"
+                className="flex items-center px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 transition text-sm"
               >
-                <MdSort className="h-4 w-4 mr-2" />
-                Sắp xếp theo {getSortFieldDisplayName(sortField)}
-                <MdKeyboardArrowDown className="h-4 w-4 ml-2" />
+                <MdSort className="h-4 w-4 mr-1" />
+                {getSortFieldDisplayName(sortField)}
+                <MdKeyboardArrowDown className="h-4 w-4 ml-1" />
               </button>
               
               {showSortMenu && (
-                <div className="absolute top-full left-0 mt-2 w-48 bg-white dark:bg-navy-800 rounded-xl shadow-lg border border-gray-200 dark:border-navy-700 z-50">
+                <div className="absolute top-full right-0 mt-2 w-48 bg-white dark:bg-navy-800 rounded-xl shadow-lg border border-gray-200 dark:border-navy-700 z-50">
                   <div className="py-2">
                     <div className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-white border-b border-gray-200 dark:border-navy-700">
                       Sắp xếp theo
@@ -552,96 +622,25 @@ const ImageManagement = () => {
             {/* Sort Order Toggle */}
             <button
               onClick={handleSortToggle}
-              className="flex items-center px-4 py-2 rounded-xl bg-gradient-to-r from-red-500 to-red-600 text-white transition duration-200 hover:from-red-600 hover:to-red-700 active:from-red-700 active:to-red-800"
+              className="flex items-center px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 transition text-sm"
             >
-              <MdSort className="h-4 w-4 mr-2" />
+              <MdSort className="h-4 w-4 mr-1" />
               {getSortOrderDisplayName()}
             </button>
 
             <button
               onClick={handleRefresh}
               disabled={isRefreshing}
-              className={`flex items-center px-4 py-2 rounded-xl text-white transition duration-200 ${
-                isRefreshing
-                  ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 active:from-red-700 active:to-red-800"
+              className={`flex items-center px-3 py-2 rounded-lg text-white transition text-sm ${
+                isRefreshing ? "bg-gray-400 cursor-not-allowed" : "bg-red-500 hover:bg-red-600"
               }`}
             >
-              <MdRefresh className={`h-4 w-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`} />
-              {isRefreshing ? "Đang làm mới..." : "Làm mới"}
+              <MdRefresh className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
             </button>
+          </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-3 mb-4">
-          {/* All Folders quick button */}
-            <button
-              onClick={() => setCurrentFolder("")}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 text-gray-700 text-sm transition-all duration-200 border border-gray-300"
-            >
-              <IoHomeOutline className="h-4 w-4" /> 
-              <span className="font-medium">Tất cả thư mục</span>
-            </button>
-
-          {/* Folder dropdown */}
-          <select
-            value={currentFolder}
-            onChange={handleFolderChange}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-          >
-            <option value="">Tất cả thư mục</option>
-            {folders.map((f) => {
-              const depth = f.split("/").length - 1;
-              const name = f.split("/").pop();
-              return (
-                <option key={f} value={f}>{`${"\u00A0".repeat(depth*2)}${name}`}</option>
-              );
-            })}
-          </select>
-
-          {/* New Folder */}
-          <button
-            onClick={() => {
-              setNewFolderName("");
-              setModalError("");
-              setShowNewFolderModal(true);
-            }}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 text-white text-sm hover:from-blue-600 hover:to-indigo-700 active:from-blue-700 active:to-indigo-800 shadow-lg hover:shadow-xl transition-all duration-200"
-          >
-            <FaPlus className="h-4 w-4" /> 
-            <span className="font-medium">Thư mục mới</span>
-          </button>
-
-          {/* Rename Folder */}
-          {currentFolder && (
-            <button
-              onClick={() => {
-                setRenameInput(currentFolder.split("/").pop());
-                setModalType('rename');
-                setShowFolderModal(true);
-              }}
-              className="flex items-center gap-1 px-3 py-2 rounded-lg bg-yellow-500 text-white text-sm hover:bg-yellow-600"
-            >
-              <MdEdit className="h-4 w-4" /> Đổi tên
-            </button>
-          )}
-
-          {/* Delete Folder */}
-          {currentFolder && (
-            <button
-              onClick={() => {
-                setModalType('delete');
-                setShowFolderModal(true);
-              }}
-              className="flex items-center gap-1 px-3 py-2 rounded-lg bg-red-500 text-white text-sm hover:bg-red-600"
-            >
-              <MdDelete className="h-4 w-4" /> Xóa
-            </button>
-          )}
-
-          {/* Upload button passes folderPath */}
-          <UploadButton onUploadComplete={handleRefresh} folderPath={currentFolder} />
-        </div>
 
         {/* Breadcrumb navigation with back button */}
         <div className="mb-4">
