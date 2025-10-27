@@ -419,7 +419,7 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="p-2 bg-gray-50 min-h-screen relative">
+    <div className="p-1 bg-gray-50 min-h-screen relative">
       {/* ✅ OPTIMIZED: Removed intrusive full-screen loading overlay */}
 
       {/* Analysis progress bar (non-blocking) */}
@@ -438,51 +438,73 @@ const Dashboard = () => {
         </div>
       )}
 
-      <div className="max-w-7xl mx-auto px-2">
+      <div className="max-w-full mx-auto px-1">
         {/* Enhanced Overview Section */}
         <div className="mb-8">
           
-          {/* Stats Cards Row */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <div className="bg-gradient-to-br from-blue-200 to-blue-300 rounded-2xl shadow-lg p-6 text-blue-800">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-3xl font-bold">{images.length}</div>
-                  <div className="text-blue-700 text-sm font-medium">Tổng số hình ảnh</div>
-                </div>
-                <div className="w-12 h-12 bg-blue-400/30 rounded-full flex items-center justify-center">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
+          {/* Stats Cards Row - Consistent Red Theme */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            {/* Total Images Card */}
+            <div className="group relative overflow-hidden bg-white rounded-xl shadow-md border border-gray-200 p-6 hover:shadow-xl transition-all duration-300">
+              <div className="absolute top-0 right-0 w-20 h-20 bg-red-500/5 rounded-full -mr-10 -mt-10 group-hover:bg-red-500/10 transition-colors"></div>
+              <div className="relative">
+                <div className="flex items-center gap-4 mb-3">
+                  <div className="w-14 h-14 bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center shadow-lg">
+                    <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <div className="text-3xl font-bold text-gray-800">{images.length}</div>
+                    <div className="text-sm text-gray-600 font-medium">Tổng số hình ảnh</div>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {statusLabels.slice(0, 3).map((label, idx) => (
-              <div key={label} className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-shadow">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="text-3xl font-bold text-gray-800">{statusStats[label]}</div>
-                    <div className="text-gray-600 text-sm font-medium">{translateStatus(label)}</div>
-                  </div>
-                  <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ background: `${statusColors[idx % statusColors.length]}20` }}>
-                    <div className="w-4 h-4 rounded-full" style={{ background: statusColors[idx % statusColors.length] }}></div>
+            {/* Status Cards - Consistent Design */}
+            {statusLabels.slice(0, 3).map((label, idx) => {
+              const statusIcons = {
+                'Completed': <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />,
+                'Uploaded': <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />,
+                'Processing': <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />,
+              };
+              
+              return (
+                <div key={label} className="group relative overflow-hidden bg-white rounded-xl shadow-md border border-gray-200 p-6 hover:shadow-xl transition-all duration-300">
+                  <div className="absolute top-0 right-0 w-20 h-20 bg-red-500/5 rounded-full -mr-10 -mt-10 group-hover:bg-red-500/10 transition-colors"></div>
+                  <div className="relative">
+                    <div className="flex items-center gap-4 mb-3">
+                      <div className="w-14 h-14 bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center shadow-lg">
+                        <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          {statusIcons[label] || <circle cx="12" cy="12" r="10" />}
+                        </svg>
+                      </div>
+                      <div>
+                        <div className="text-3xl font-bold text-gray-800">{statusStats[label] || 0}</div>
+                        <div className="text-sm text-gray-600 font-medium">{translateStatus(label)}</div>
+                      </div>
+                    </div>
+                    <div className="mt-2 text-xs text-gray-500 font-medium">
+                      {images.length > 0 ? ((statusStats[label] / images.length) * 100).toFixed(1) : 0}%
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Enhanced Chart Section */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Pie Chart Card */}
-            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+            {/* Pie Chart Card - Red Theme */}
+            <div className="relative overflow-hidden bg-white rounded-xl shadow-md border border-gray-200 p-6 hover:shadow-lg transition-all duration-300">
+              <div className="absolute top-0 left-0 w-full h-1 bg-red-500"></div>
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-xl font-bold text-gray-800">Phân bổ trạng thái</h3>
-                                 <div className="flex items-center gap-2">
-                   <div className="w-3 h-3 bg-gradient-to-r from-blue-300 to-purple-300 rounded-full"></div>
-                   <span className="text-sm text-gray-600 font-medium">Thời gian thực</span>
-                 </div>
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-red-50 rounded-lg border border-red-200">
+                  <div className="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse"></div>
+                  <span className="text-xs font-semibold text-red-700">Thời gian thực</span>
+                </div>
               </div>
               <div className="flex justify-center">
                 <div className="w-80 h-80">
@@ -491,41 +513,66 @@ const Dashboard = () => {
               </div>
             </div>
 
-            {/* Status Legend Card */}
-            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+            {/* Status Legend Card - Red Theme */}
+            <div className="relative overflow-hidden bg-white rounded-xl shadow-md border border-gray-200 p-6 hover:shadow-lg transition-all duration-300">
+              <div className="absolute top-0 left-0 w-full h-1 bg-red-500"></div>
               <h3 className="text-xl font-bold text-gray-800 mb-6">Chi tiết trạng thái</h3>
-              <div className="space-y-4">
-                {statusLabels.map((label, idx) => (
-                  <div key={label} className="flex items-center justify-between p-4 bg-blue-50 rounded-xl hover:bg-blue-100 transition-colors">
-                    <div className="flex items-center gap-3">
-                      <div className="w-4 h-4 rounded-full" style={{ background: statusColors[idx % statusColors.length] }}></div>
-                      <span className="font-semibold text-gray-800">{translateStatus(label)}</span>
+              <div className="space-y-3">
+                {statusLabels.map((label, idx) => {
+                  const percentage = images.length > 0 ? ((statusStats[label] || 0) / images.length * 100) : 0;
+                  return (
+                    <div key={label} className="group">
+                      <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200 hover:bg-red-50 hover:border-red-200 transition-all duration-300">
+                        <div className="flex items-center gap-3">
+                          <div className="w-3 h-3 rounded-full" style={{ background: statusColors[idx % statusColors.length] }}></div>
+                          <span className="font-semibold text-gray-800">{translateStatus(label)}</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="text-2xl font-bold text-gray-800">{statusStats[label] || 0}</span>
+                          <span className="text-sm font-medium text-gray-500 bg-white px-2 py-1 rounded-lg border border-gray-200">
+                            {percentage.toFixed(1)}%
+                          </span>
+                        </div>
+                      </div>
+                      {/* Progress Bar - Red Theme */}
+                      <div className="mt-2 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-gradient-to-r from-red-500 to-red-600 transition-all duration-1000 ease-out"
+                          style={{ width: `${percentage}%` }}
+                        ></div>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-2xl font-bold text-gray-800">{statusStats[label]}</span>
-                      <span className="text-sm text-gray-500">
-                        ({((statusStats[label] / images.length) * 100).toFixed(1)}%)
-                      </span>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
               
-                             {/* Summary Stats */}
-               <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl">
-                 <div className="flex items-center justify-between">
-                   <span className="text-sm font-medium text-gray-600">Tỷ lệ xử lý</span>
-                   <span className="text-lg font-bold text-gray-800">
-                     {images.length > 0 ? ((statusStats['Completed'] || 0) / images.length * 100).toFixed(1) : 0}%
-                   </span>
-                 </div>
-                 <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
-                   <div 
-                     className="bg-gradient-to-r from-blue-300 to-purple-300 h-2 rounded-full transition-all duration-500"
-                     style={{ width: `${images.length > 0 ? ((statusStats['Completed'] || 0) / images.length * 100) : 0}%` }}
-                   ></div>
-                 </div>
-               </div>
+              {/* Summary Stats - Red Theme */}
+              <div className="mt-6 p-6 bg-gradient-to-r from-red-500 to-red-600 rounded-xl shadow-md text-white relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+                <div className="relative">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <div className="text-sm text-white/90 font-medium">Tỷ lệ xử lý</div>
+                        <div className="text-2xl font-bold">
+                          {images.length > 0 ? ((statusStats['Completed'] || 0) / images.length * 100).toFixed(1) : 0}%
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="w-full bg-white/20 rounded-full h-2 overflow-hidden">
+                    <div 
+                      className="bg-white h-2 rounded-full transition-all duration-1000 ease-out"
+                      style={{ width: `${images.length > 0 ? ((statusStats['Completed'] || 0) / images.length * 100) : 0}%` }}
+                    ></div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -553,8 +600,8 @@ const Dashboard = () => {
         ) : error ? (
           <div className="text-center py-16 text-red-500 text-lg">{error}</div>
         ) : (
-          <div className="overflow-x-auto bg-white rounded-xl shadow border border-gray-100">
-            <table className="min-w-full divide-y divide-gray-100">
+          <div className="overflow-x-auto overflow-y-visible bg-white rounded-xl shadow border border-gray-100">
+            <table className="min-w-[1200px] w-full divide-y divide-gray-100">
               <thead className="bg-gray-100">
                 <tr>
                   <th className="px-3 py-2 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">
@@ -580,20 +627,31 @@ const Dashboard = () => {
                     Tên hình ảnh {sortIcon("ImageName", sortBy, sortDir)}
                   </th>
                   <th
+                    className="px-3 py-2 text-left text-xs font-bold text-gray-700 uppercase tracking-wider"
+                  >
+                    Thư mục
+                  </th>
+                  <th
                     className="px-3 py-2 text-left text-xs font-bold text-gray-700 uppercase tracking-wider cursor-pointer select-none"
                     onClick={() => handleSort("Status")}
                   >
                     Trạng thái {sortIcon("Status", sortBy, sortDir)}
                   </th>
                   <th
-                    className="px-3 py-2 text-left text-xs font-bold text-gray-700 uppercase tracking-wider"
+                    className="px-3 py-2 text-left text-xs font-bold text-gray-700 uppercase tracking-wider cursor-pointer select-none"
+                    onClick={() => handleSort("CreatedAt")}
                   >
-                    Họ và Tên
+                    Ngày tạo {sortIcon("CreatedAt", sortBy, sortDir)}
                   </th>
                   <th
                     className="px-3 py-2 text-left text-xs font-bold text-gray-700 uppercase tracking-wider"
                   >
-                    CCCD
+                    Tải lên bởi
+                  </th>
+                  <th
+                    className="px-3 py-2 text-left text-xs font-bold text-gray-700 uppercase tracking-wider"
+                  >
+                    Họ và Tên
                   </th>
                   <th
                     className="px-3 py-2 text-left text-xs font-bold text-gray-700 uppercase tracking-wider"
@@ -609,12 +667,6 @@ const Dashboard = () => {
                     className="px-3 py-2 text-left text-xs font-bold text-gray-700 uppercase tracking-wider"
                   >
                     Trường THPT
-                  </th>
-                  <th
-                    className="px-3 py-2 text-left text-xs font-bold text-gray-700 uppercase tracking-wider cursor-pointer select-none"
-                    onClick={() => handleSort("CreatedAt")}
-                  >
-                    Ngày tạo {sortIcon("CreatedAt", sortBy, sortDir)}
                   </th>
                 </tr>
               </thead>
@@ -655,6 +707,18 @@ const Dashboard = () => {
                         {img.ImageName}
                       </td>
                       <td className="px-3 py-2">
+                        {img.FolderPath ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 text-gray-700 rounded-lg text-xs font-medium">
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                            </svg>
+                            {img.FolderPath}
+                          </span>
+                        ) : (
+                          <span className="text-gray-400 text-xs">Gốc</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2">
                         <span
                           className={`inline-block px-3 py-1 rounded-full text-xs font-bold border shadow-sm ${statusColor(
                             img.Status
@@ -663,11 +727,23 @@ const Dashboard = () => {
                           {translateStatus(img.Status)}
                         </span>
                       </td>
-                      <td className="px-3 py-2 text-gray-700 text-sm">
-                        {extracted.ho_va_ten || "-"}
+                      <td className="px-3 py-2 text-gray-500 text-xs whitespace-nowrap">
+                        {formatDate(img.CreatedAt)}
+                      </td>
+                      <td className="px-3 py-2">
+                        {img.UploadBy ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-700 rounded-lg text-xs font-medium">
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
+                            {img.UploadBy}
+                          </span>
+                        ) : (
+                          <span className="text-gray-400 text-xs">-</span>
+                        )}
                       </td>
                       <td className="px-3 py-2 text-gray-700 text-sm">
-                        {extracted.cccd || "-"}
+                        {extracted.ho_va_ten || "-"}
                       </td>
                       <td className="px-3 py-2 text-gray-700 text-sm">
                         {extracted.dien_thoai || "-"}
@@ -677,9 +753,6 @@ const Dashboard = () => {
                       </td>
                       <td className="px-3 py-2 text-gray-700 text-sm">
                         {extracted.truong_thpt || "-"}
-                      </td>
-                      <td className="px-3 py-2 text-gray-500 text-xs whitespace-nowrap">
-                        {formatDate(img.CreatedAt)}
                       </td>
                     </tr>
                   );
