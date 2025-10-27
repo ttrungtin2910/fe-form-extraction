@@ -15,21 +15,21 @@ import { MdDashboard } from "react-icons/md";
 
 const routes = [
   {
-    name: "Dashboard",
+    name: "Tổng quan",
     layout: "/admin",
     path: "dashboard",
     icon: <MdDashboard className="h-6 w-6" />,
     component: <Dashboard />,
   },
   {
-    name: "Image Management",
+    name: "Quản lý hình ảnh",
     layout: "/admin",
     path: "imagemanagement",
     icon: <IoIosDocument className="h-6 w-6" />,
     component: <ImageManagement />,
   },
   {
-    name: "Synchronization",
+    name: "Đồng bộ hóa",
     layout: "/admin",
     path: "synchronization",
     icon: <MdSync className="h-6 w-6" />,
@@ -37,7 +37,7 @@ const routes = [
   },
   // Hidden routes (not shown in sidebar)
   {
-    name: "Sign In",
+    name: "Đăng nhập",
     layout: "/auth",
     path: "sign-in",
     component: <SignIn />,

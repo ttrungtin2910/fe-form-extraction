@@ -21,7 +21,7 @@ function SignIn() {
     e.preventDefault();
     
     if (!username || !password) {
-      toast.error("Please enter username and password");
+      toast.error("Vui lòng nhập tên đăng nhập và mật khẩu");
       return;
     }
 
@@ -30,13 +30,13 @@ function SignIn() {
     try {
       await login(username, password);
       
-      toast.success(`Welcome back, ${username}!`);
+      toast.success(`Chào mừng trở lại, ${username}!`);
 
       // Navigate to dashboard
       navigate("/admin/dashboard");
     } catch (error) {
       console.error("Login error:", error);
-      toast.error(error.message || "Incorrect username or password");
+      toast.error(error.message || "Sai tên đăng nhập hoặc mật khẩu");
     } finally {
       setIsLoading(false);
     }
@@ -46,10 +46,10 @@ function SignIn() {
     <div className="mb-auto flex flex-col pl-5 pr-5 md:pr-0 md:pl-12 lg:max-w-[48%] lg:pl-0 xl:max-w-full">
       <div className="me-auto mb-6 mt-10">
         <h1 className="text-4xl font-bold text-navy-700 dark:text-white mb-3">
-          Sign In
+          Đăng nhập
         </h1>
         <p className="text-base text-gray-600 dark:text-gray-400">
-          Enter your username and password to sign in!
+          Nhập tên đăng nhập và mật khẩu để tiếp tục!
         </p>
       </div>
       
@@ -58,11 +58,11 @@ function SignIn() {
           {/* Username Input */}
           <div>
             <label className="text-sm font-medium text-navy-700 dark:text-white mb-2 block">
-              Username <span className="text-brand-500">*</span>
+              Tên đăng nhập <span className="text-brand-500">*</span>
             </label>
             <input
               type="text"
-              placeholder="Enter your username"
+              placeholder="Nhập tên đăng nhập"
               required
               value={username}
               onChange={(e) => setUsername(e.target.value)}
@@ -74,12 +74,12 @@ function SignIn() {
           {/* Password Input */}
           <div>
             <label className="text-sm font-medium text-navy-700 dark:text-white mb-2 block">
-              Password <span className="text-brand-500">*</span>
+              Mật khẩu <span className="text-brand-500">*</span>
             </label>
             <div className="relative">
               <input
                 type={show ? "text" : "password"}
-                placeholder="Min. 6 characters"
+                placeholder="Tối thiểu 6 ký tự"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -106,30 +106,30 @@ function SignIn() {
             disabled={isLoading}
             className="w-full px-6 py-3 bg-brand-500 hover:bg-brand-600 text-white font-medium rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isLoading ? "Signing In..." : "Sign In"}
+            {isLoading ? "Đang đăng nhập..." : "Đăng nhập"}
           </button>
         </form>
 
         {/* Demo Accounts Info */}
         <div className="mt-8 p-4 bg-gray-50 dark:bg-navy-800 rounded-xl">
           <p className="text-sm font-medium text-navy-700 dark:text-white mb-2">
-            Demo Accounts:
+            Tài khoản demo:
           </p>
           <div className="space-y-1">
             <p className="text-xs text-gray-600 dark:text-gray-400">
-              • tin.trantrung / secret (Admin)
+              • tin.trantrung / secret (Quản trị viên)
             </p>
             <p className="text-xs text-gray-600 dark:text-gray-400">
-              • thao.nguyentrang / secret (User)
+              • thao.nguyentrang / secret (Người dùng)
             </p>
             <p className="text-xs text-gray-600 dark:text-gray-400">
-              • vin.nguyenthai / secret (User)
+              • vin.nguyenthai / secret (Người dùng)
             </p>
             <p className="text-xs text-gray-600 dark:text-gray-400">
-              • testuser1 / secret (Viewer)
+              • testuser1 / secret (Người xem)
             </p>
             <p className="text-xs text-gray-600 dark:text-gray-400">
-              • testuser2 / secret (Viewer)
+              • testuser2 / secret (Người xem)
             </p>
           </div>
         </div>

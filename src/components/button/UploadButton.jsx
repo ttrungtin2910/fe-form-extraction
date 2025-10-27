@@ -130,18 +130,18 @@ const UploadButton = ({ onUploadComplete, folderPath = "" }) => {
     };
 
     const getStatusText = () => {
-        if(phase==='uploading') return `Uploading (${uploadedCount}/${totalFiles})`;
-        if(phase==='waiting') return 'Finalizing uploads...';
-        if(phase==='extracting') return `Extracting (${extractProgress.done}/${extractProgress.total})`;
+        if(phase==='uploading') return `Đang tải lên (${uploadedCount}/${totalFiles})`;
+        if(phase==='waiting') return 'Đang hoàn tất...';
+        if(phase==='extracting') return `Đang trích xuất (${extractProgress.done}/${extractProgress.total})`;
         switch (uploadStatus) {
             case "processing":
-                return `Processing (${uploadedCount}/${totalFiles})`;
+                return `Đang xử lý (${uploadedCount}/${totalFiles})`;
             case "done":
-                return "Done";
+                return "Hoàn thành";
             case "error":
-                return "Error";
+                return "Lỗi";
             default:
-                return "Upload image";
+                return "Tải ảnh lên";
         }
     };
 
@@ -164,7 +164,7 @@ const UploadButton = ({ onUploadComplete, folderPath = "" }) => {
             {isUploading && (
               <div className="fixed bottom-4 left-4 right-4 md:left-1/2 md:-translate-x-1/2 md:w-1/2 z-50 bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg p-4">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700 capitalize">{phase==='extracting' ? 'Extracting...' : phase==='waiting' ? 'Waiting tasks...' : 'Uploading images...'}</span>
+                  <span className="text-sm font-medium text-gray-700 capitalize">{phase==='extracting' ? 'Đang trích xuất...' : phase==='waiting' ? 'Đang chờ xử lý...' : 'Đang tải lên hình ảnh...'}</span>
                   <span className="text-sm font-medium text-gray-700">
                     {phase==='extracting' ? `${extractProgress.done}/${extractProgress.total}` : `${uploadedCount}/${totalFiles}`}
                   </span>

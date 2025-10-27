@@ -8,6 +8,8 @@ import PieChart from "components/charts/PieChart";
 import { FaSpinner, FaTrash, FaPlayCircle } from "react-icons/fa";
 import { useImageManagement } from "contexts/ImageManagementContext";
 import { useToast, useConfirm } from "components/common/ToastProvider";
+import { translateStatus } from "utils/statusTranslator";
+import ImageDialog from "components/image/ImageDialog";
 
 const statusColor = (status) => {
   if (status === "Completed") return "bg-green-100 text-green-700 border-green-200";
@@ -34,7 +36,7 @@ function getStatusStats(images) {
   return stats;
 }
 
-// Format date to readable format
+// Format date to readable format with Vietnam timezone (+7)
 const formatDate = (dateString) => {
   if (!dateString) return "N/A";
   
@@ -43,20 +45,32 @@ const formatDate = (dateString) => {
     const customFormatMatch = dateString.match(/^(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})_\d+$/);
     if (customFormatMatch) {
       const [, year, month, day, hours, minutes] = customFormatMatch;
-      return `${day}/${month}/${year} ${hours}:${minutes}`;
+      // Convert to Vietnam timezone (+7)
+      const utcDate = new Date(`${year}-${month}-${day}T${hours}:${minutes}:00Z`);
+      const vietnamDate = new Date(utcDate.getTime() + (0 * 60 * 60 * 1000));
+      
+      const dayStr = String(vietnamDate.getDate()).padStart(2, '0');
+      const monthStr = String(vietnamDate.getMonth() + 1).padStart(2, '0');
+      const yearStr = vietnamDate.getFullYear();
+      const hoursStr = String(vietnamDate.getHours()).padStart(2, '0');
+      const minutesStr = String(vietnamDate.getMinutes()).padStart(2, '0');
+      return `${dayStr}/${monthStr}/${yearStr} ${hoursStr}:${minutesStr}`;
     }
     
-    // Try standard date parsing
+    // Try standard date parsing with Vietnam timezone
     const date = new Date(dateString);
     // Check if date is valid
     if (isNaN(date.getTime())) {
       return dateString; // Return original if invalid
     }
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
+    
+    // Convert to Vietnam timezone (+7)
+    const vietnamDate = new Date(date.getTime() + (7 * 60 * 60 * 1000));
+    const day = String(vietnamDate.getDate()).padStart(2, '0');
+    const month = String(vietnamDate.getMonth() + 1).padStart(2, '0');
+    const year = vietnamDate.getFullYear();
+    const hours = String(vietnamDate.getHours()).padStart(2, '0');
+    const minutes = String(vietnamDate.getMinutes()).padStart(2, '0');
     return `${day}/${month}/${year} ${hours}:${minutes}`;
   } catch (e) {
     return dateString;
@@ -69,8 +83,8 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selected, setSelected] = useState([]);
-  const [sortBy, setSortBy] = useState("ImageName");
-  const [sortDir, setSortDir] = useState("asc");
+  const [sortBy, setSortBy] = useState("CreatedAt");
+  const [sortDir, setSortDir] = useState("desc");
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -80,6 +94,10 @@ const Dashboard = () => {
   const [analyzing, setAnalyzing] = useState(false);
   const [analyzeProgress, setAnalyzeProgress] = useState(0);
   const [analyzeTotal, setAnalyzeTotal] = useState(0);
+
+  // State for image detail dialog
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [showImageDialog, setShowImageDialog] = useState(false);
 
   // Context for sidebar actions
   const {
@@ -99,38 +117,77 @@ const Dashboard = () => {
       const resp = await api.images.getAll({page:1,limit:100});
       const imagesList = resp.data || [];
       setImages(imagesList);
+      setLoading(false); // ✅ Stop loading immediately after getting images
       
-      // Fetch extracted data for completed images
-      const extractionPromises = imagesList
-        .filter(img => img.Status === 'Completed')
-        .map(async (img) => {
-          try {
-            const formData = await api.formExtraction.getInfo({ ImageName: img.ImageName });
-            return { imageName: img.ImageName, data: formData };
-          } catch (err) {
-            console.error(`Failed to fetch extraction data for ${img.ImageName}:`, err);
-            return { imageName: img.ImageName, data: null };
-          }
-        });
-      
-      const extractionResults = await Promise.all(extractionPromises);
-      const extractionMap = {};
-      extractionResults.forEach(({ imageName, data }) => {
-        if (data && data.analysis_result) {
-          extractionMap[imageName] = data.analysis_result;
-        }
-      });
-      setExtractedData(extractionMap);
+      // ✅ OPTIMIZED: Fetch extracted data in background, incrementally for current page only
+      // This will be handled by fetchExtractedDataForPage when page changes
     } catch (err) {
-      setError("Failed to fetch images");
-    } finally {
+      setError("Không thể tải hình ảnh");
       setLoading(false);
     }
+  };
+
+  // ✅ NEW: Fetch extracted data only for current page (10 items max)
+  const fetchExtractedDataForPage = async (pageImages) => {
+    const completedImages = pageImages.filter(img => img.Status === 'Completed');
+    
+    // Only fetch if we don't already have the data
+    const imagesToFetch = completedImages.filter(img => !extractedData[img.ImageName]);
+    
+    if (imagesToFetch.length === 0) return;
+    
+    // Fetch in background without blocking UI
+    const extractionPromises = imagesToFetch.map(async (img) => {
+      try {
+        const formData = await api.formExtraction.getInfo({ ImageName: img.ImageName });
+        return { imageName: img.ImageName, data: formData };
+      } catch (err) {
+        console.error(`Failed to fetch extraction data for ${img.ImageName}:`, err);
+        return { imageName: img.ImageName, data: null };
+      }
+    });
+    
+    const extractionResults = await Promise.all(extractionPromises);
+    const extractionMap = { ...extractedData };
+    extractionResults.forEach(({ imageName, data }) => {
+      if (data && data.analysis_result) {
+        extractionMap[imageName] = data.analysis_result;
+      }
+    });
+    setExtractedData(extractionMap);
   };
 
   useEffect(() => {
     fetchImages();
   }, []);
+
+  // ✅ Fetch extracted data for current page when page changes or sorts
+  useEffect(() => {
+    if (images.length > 0 && !loading) {
+      // Calculate paginated images here to avoid dependency issues
+      const sorted = [...images].sort((a, b) => {
+        let aVal = a[sortBy] || "";
+        let bVal = b[sortBy] || "";
+        if (sortBy === "CreatedAt") {
+          aVal = new Date(aVal);
+          bVal = new Date(bVal);
+        } else {
+          aVal = aVal.toString().toLowerCase();
+          bVal = bVal.toString().toLowerCase();
+        }
+        if (aVal < bVal) return sortDir === "asc" ? -1 : 1;
+        if (aVal > bVal) return sortDir === "asc" ? 1 : -1;
+        return 0;
+      });
+      const startIndex = (currentPage - 1) * itemsPerPage;
+      const endIndex = startIndex + itemsPerPage;
+      const paginated = sorted.slice(startIndex, endIndex);
+      
+      if (paginated.length > 0) {
+        fetchExtractedDataForPage(paginated);
+      }
+    }
+  }, [currentPage, images, sortBy, sortDir]);
 
   // Sync selected with context
   useEffect(() => {
@@ -163,6 +220,11 @@ const Dashboard = () => {
     );
   };
 
+  const handleRowClick = (img) => {
+    setSelectedImage(img);
+    setShowImageDialog(true);
+  };
+
   const handleSort = (field) => {
     if (sortBy === field) {
       setSortDir((prev) => (prev === "asc" ? "desc" : "asc"));
@@ -176,13 +238,28 @@ const Dashboard = () => {
   const sortedImages = [...images].sort((a, b) => {
     let aVal = a[sortBy] || "";
     let bVal = b[sortBy] || "";
+    
     if (sortBy === "CreatedAt") {
-      aVal = new Date(aVal);
-      bVal = new Date(bVal);
+      // Handle custom date format: 20250804_024535_110625
+      const customFormatMatchA = aVal.match(/^(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})_\d+$/);
+      const customFormatMatchB = bVal.match(/^(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})_\d+$/);
+      
+      if (customFormatMatchA && customFormatMatchB) {
+        // Convert to comparable timestamp
+        const [, yearA, monthA, dayA, hoursA, minutesA] = customFormatMatchA;
+        const [, yearB, monthB, dayB, hoursB, minutesB] = customFormatMatchB;
+        aVal = new Date(`${yearA}-${monthA}-${dayA}T${hoursA}:${minutesA}:00Z`).getTime();
+        bVal = new Date(`${yearB}-${monthB}-${dayB}T${hoursB}:${minutesB}:00Z`).getTime();
+      } else {
+        // Standard date parsing
+        aVal = new Date(aVal).getTime();
+        bVal = new Date(bVal).getTime();
+      }
     } else {
       aVal = aVal.toString().toLowerCase();
       bVal = bVal.toString().toLowerCase();
     }
+    
     if (aVal < bVal) return sortDir === "asc" ? -1 : 1;
     if (aVal > bVal) return sortDir === "asc" ? 1 : -1;
     return 0;
@@ -202,11 +279,12 @@ const Dashboard = () => {
   // Stats for overview
   const statusStats = getStatusStats(images);
   const statusLabels = Object.keys(statusStats);
+  const statusLabelsVi = statusLabels.map(label => translateStatus(label)); // Translate for display
   const statusCounts = statusLabels.map((k) => statusStats[k]);
   const statusColors = ["#86efac", "#fca5a5", "#c4b5fd", "#fcd34d", "#d1d5db"];
 
   const pieOptions = {
-    labels: statusLabels,
+    labels: statusLabelsVi,
     legend: { show: true, position: "bottom", fontSize: "12px", fontFamily: "Inter" },
     colors: statusColors,
     dataLabels: { 
@@ -311,7 +389,7 @@ const Dashboard = () => {
   // Delete selected images
   async function handleDeleteSelected() {
     if (selected.length === 0) return;
-    const ok = await confirmModal({title:"Delete images",message:`Delete ${selected.length} images?`,type:"danger",confirmText:"Delete"});
+    const ok = await confirmModal({title:"Xóa hình ảnh",message:`Xóa ${selected.length} hình ảnh?`,type:"danger",confirmText:"Xóa"});
     if(!ok) return;
     setLoading(true);
     try {
@@ -322,7 +400,7 @@ const Dashboard = () => {
       }
       fetchImages();
       setSelected([]);
-      toast.success("Images deleted");
+      toast.success("Đã xóa hình ảnh");
     } finally {
       setLoading(false);
     }
@@ -330,21 +408,13 @@ const Dashboard = () => {
 
   return (
     <div className="p-2 bg-gray-50 min-h-screen relative">
-      {/* Loading Overlay */}
-      {loading && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
-          <div className="flex flex-col items-center gap-4 p-8 bg-white/80 rounded-2xl shadow-2xl">
-            <FaSpinner className="animate-spin text-4xl text-red-500" />
-            <span className="text-lg font-semibold text-gray-700">Loading...</span>
-          </div>
-        </div>
-      )}
+      {/* ✅ OPTIMIZED: Removed intrusive full-screen loading overlay */}
 
       {/* Analysis progress bar (non-blocking) */}
       {analyzing && (
         <div className="fixed bottom-4 left-4 right-4 md:left-1/2 md:-translate-x-1/2 md:w-1/2 z-40 bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg p-4">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-700">Analyzing images...</span>
+            <span className="text-sm font-medium text-gray-700">Đang phân tích hình ảnh...</span>
             <span className="text-sm font-medium text-gray-700">{analyzeProgress}/{analyzeTotal}</span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
@@ -366,7 +436,7 @@ const Dashboard = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <div className="text-3xl font-bold">{images.length}</div>
-                  <div className="text-blue-700 text-sm font-medium">Total Images</div>
+                  <div className="text-blue-700 text-sm font-medium">Tổng số hình ảnh</div>
                 </div>
                 <div className="w-12 h-12 bg-blue-400/30 rounded-full flex items-center justify-center">
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -381,7 +451,7 @@ const Dashboard = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="text-3xl font-bold text-gray-800">{statusStats[label]}</div>
-                    <div className="text-gray-600 text-sm font-medium">{label}</div>
+                    <div className="text-gray-600 text-sm font-medium">{translateStatus(label)}</div>
                   </div>
                   <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ background: `${statusColors[idx % statusColors.length]}20` }}>
                     <div className="w-4 h-4 rounded-full" style={{ background: statusColors[idx % statusColors.length] }}></div>
@@ -396,10 +466,10 @@ const Dashboard = () => {
             {/* Pie Chart Card */}
             <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-bold text-gray-800">Status Distribution</h3>
+                <h3 className="text-xl font-bold text-gray-800">Phân bổ trạng thái</h3>
                                  <div className="flex items-center gap-2">
                    <div className="w-3 h-3 bg-gradient-to-r from-blue-300 to-purple-300 rounded-full"></div>
-                   <span className="text-sm text-gray-600 font-medium">Real-time</span>
+                   <span className="text-sm text-gray-600 font-medium">Thời gian thực</span>
                  </div>
               </div>
               <div className="flex justify-center">
@@ -411,13 +481,13 @@ const Dashboard = () => {
 
             {/* Status Legend Card */}
             <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-              <h3 className="text-xl font-bold text-gray-800 mb-6">Status Breakdown</h3>
+              <h3 className="text-xl font-bold text-gray-800 mb-6">Chi tiết trạng thái</h3>
               <div className="space-y-4">
                 {statusLabels.map((label, idx) => (
                   <div key={label} className="flex items-center justify-between p-4 bg-blue-50 rounded-xl hover:bg-blue-100 transition-colors">
                     <div className="flex items-center gap-3">
                       <div className="w-4 h-4 rounded-full" style={{ background: statusColors[idx % statusColors.length] }}></div>
-                      <span className="font-semibold text-gray-800">{label}</span>
+                      <span className="font-semibold text-gray-800">{translateStatus(label)}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-2xl font-bold text-gray-800">{statusStats[label]}</span>
@@ -432,7 +502,7 @@ const Dashboard = () => {
                              {/* Summary Stats */}
                <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl">
                  <div className="flex items-center justify-between">
-                   <span className="text-sm font-medium text-gray-600">Processing Rate</span>
+                   <span className="text-sm font-medium text-gray-600">Tỷ lệ xử lý</span>
                    <span className="text-lg font-bold text-gray-800">
                      {images.length > 0 ? ((statusStats['Completed'] || 0) / images.length * 100).toFixed(1) : 0}%
                    </span>
@@ -455,16 +525,19 @@ const Dashboard = () => {
             className="flex items-center justify-center px-4 py-2 rounded-lg bg-white border border-gray-200 shadow hover:bg-gray-100 text-gray-700 font-semibold text-sm transition h-[42px]"
             style={{ minWidth: 0 }}
           >
-            <FiRefreshCw className="mr-2 text-base" /> Refresh
+            <FiRefreshCw className="mr-2 text-base" /> Làm mới
           </button>
           <span className="ml-auto text-sm text-gray-500">
-            Selected: <span className="font-semibold text-gray-700">{selected.length}</span>
+            Đã chọn: <span className="font-semibold text-gray-700">{selected.length}</span>
             <span className="mx-2">|</span>
-            Page <span className="font-semibold text-gray-700">{currentPage}</span> of <span className="font-semibold text-gray-700">{totalPages}</span>
+            Trang <span className="font-semibold text-gray-700">{currentPage}</span> / <span className="font-semibold text-gray-700">{totalPages}</span>
           </span>
         </div>
         {loading ? (
-          <div className="text-center py-16 text-gray-400 text-lg">Loading...</div>
+          <div className="flex items-center justify-center py-16">
+            <FaSpinner className="animate-spin text-3xl text-red-500 mr-3" />
+            <span className="text-lg text-gray-600">Đang tải dữ liệu...</span>
+          </div>
         ) : error ? (
           <div className="text-center py-16 text-red-500 text-lg">{error}</div>
         ) : (
@@ -479,7 +552,7 @@ const Dashboard = () => {
                     <button
                       onClick={handleSelectAll}
                       className="focus:outline-none"
-                      aria-label={selected.length === images.length && images.length > 0 ? "Unselect all" : "Select all"}
+                      aria-label={selected.length === images.length && images.length > 0 ? "Bỏ chọn tất cả" : "Chọn tất cả"}
                     >
                       {selected.length === images.length && images.length > 0 ? (
                         <MdCheckBox className="w-5 h-5 text-red-500 transition" />
@@ -492,13 +565,13 @@ const Dashboard = () => {
                     className="px-3 py-2 text-left text-xs font-bold text-gray-700 uppercase tracking-wider cursor-pointer select-none"
                     onClick={() => handleSort("ImageName")}
                   >
-                    Image Name {sortIcon("ImageName", sortBy, sortDir)}
+                    Tên hình ảnh {sortIcon("ImageName", sortBy, sortDir)}
                   </th>
                   <th
                     className="px-3 py-2 text-left text-xs font-bold text-gray-700 uppercase tracking-wider cursor-pointer select-none"
                     onClick={() => handleSort("Status")}
                   >
-                    Status {sortIcon("Status", sortBy, sortDir)}
+                    Trạng thái {sortIcon("Status", sortBy, sortDir)}
                   </th>
                   <th
                     className="px-3 py-2 text-left text-xs font-bold text-gray-700 uppercase tracking-wider"
@@ -529,7 +602,7 @@ const Dashboard = () => {
                     className="px-3 py-2 text-left text-xs font-bold text-gray-700 uppercase tracking-wider cursor-pointer select-none"
                     onClick={() => handleSort("CreatedAt")}
                   >
-                    Date {sortIcon("CreatedAt", sortBy, sortDir)}
+                    Ngày tạo {sortIcon("CreatedAt", sortBy, sortDir)}
                   </th>
                 </tr>
               </thead>
@@ -542,18 +615,22 @@ const Dashboard = () => {
                       key={img.ImageName || idx}
                       className={
                         selected.includes(img.ImageName)
-                          ? "bg-red-50/60 hover:bg-red-100/80"
-                          : "hover:bg-gray-50 transition"
+                          ? "bg-red-50/60 hover:bg-red-100/80 cursor-pointer"
+                          : "hover:bg-gray-50 transition cursor-pointer"
                       }
+                      onClick={() => handleRowClick(img)}
                     >
                       <td className="px-3 py-2 text-center text-sm font-medium text-gray-600">
                         {rowNumber}
                       </td>
                       <td className="px-3 py-2">
                         <button
-                          onClick={() => handleSelectRow(img.ImageName)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleSelectRow(img.ImageName);
+                          }}
                           className="focus:outline-none"
-                          aria-label={selected.includes(img.ImageName) ? "Unselect" : "Select"}
+                          aria-label={selected.includes(img.ImageName) ? "Bỏ chọn" : "Chọn"}
                         >
                           {selected.includes(img.ImageName) ? (
                             <MdCheckBox className="w-5 h-5 text-red-500 transition" />
@@ -571,7 +648,7 @@ const Dashboard = () => {
                             img.Status
                           )}`}
                         >
-                          {img.Status}
+                          {translateStatus(img.Status)}
                         </span>
                       </td>
                       <td className="px-3 py-2 text-gray-700 text-sm">
@@ -602,7 +679,7 @@ const Dashboard = () => {
             {totalPages > 1 && (
               <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200">
                 <div className="text-sm text-gray-600">
-                  Showing <span className="font-semibold">{startIndex + 1}</span> to <span className="font-semibold">{Math.min(endIndex, sortedImages.length)}</span> of <span className="font-semibold">{sortedImages.length}</span> results
+                  Hiển thị <span className="font-semibold">{startIndex + 1}</span> đến <span className="font-semibold">{Math.min(endIndex, sortedImages.length)}</span> trong tổng số <span className="font-semibold">{sortedImages.length}</span> kết quả
                 </div>
                 <div className="flex items-center gap-2">
                   <button
@@ -614,7 +691,7 @@ const Dashboard = () => {
                         : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
                     }`}
                   >
-                    Previous
+                    Trước
                   </button>
                   
                   <div className="flex gap-1">
@@ -658,7 +735,7 @@ const Dashboard = () => {
                         : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
                     }`}
                   >
-                    Next
+                    Sau
                   </button>
                 </div>
               </div>
@@ -666,6 +743,18 @@ const Dashboard = () => {
           </div>
         )}
       </div>
+
+      {/* Image Detail Dialog */}
+      {showImageDialog && selectedImage && (
+        <ImageDialog
+          image={selectedImage}
+          title={selectedImage.ImageName}
+          onClose={() => {
+            setShowImageDialog(false);
+            setSelectedImage(null);
+          }}
+        />
+      )}
     </div>
   );
 };

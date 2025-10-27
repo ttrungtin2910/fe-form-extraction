@@ -174,18 +174,18 @@ const ImageManagement = () => {
   const getSortFieldDisplayName = (field) => {
     switch (field) {
       case "CreatedAt":
-        return "Date";
+        return "Ngày tạo";
       case "ImageName":
-        return "Name";
+        return "Tên";
       case "Status":
-        return "Status";
+        return "Trạng thái";
       default:
         return field;
     }
   };
 
   const getSortOrderDisplayName = () => {
-    return sortOrder === "asc" ? "Ascending" : "Descending";
+    return sortOrder === "asc" ? "Tăng dần" : "Giảm dần";
   };
 
   const handleImageSelect = (imageName, isSelected) => {
@@ -235,7 +235,7 @@ const ImageManagement = () => {
 
   const handleAnalyzeSelected = async () => {
     if (selectedImages.size === 0) {
-      toast.warn("Please select at least one image to analyze");
+      toast.warn("Vui lòng chọn ít nhất một hình ảnh để phân tích");
       return;
     }
 
@@ -270,7 +270,7 @@ const ImageManagement = () => {
       const failedEnqueue = taskMappings.filter(t => !t.taskId).length;
 
       if (failedEnqueue) {
-        toast.warn(`${failedEnqueue} images failed to enqueue`);
+        toast.warn(`${failedEnqueue} hình ảnh xếp hàng thất bại`);
       }
 
       // 2. Poll all tasks concurrently
@@ -325,7 +325,7 @@ const ImageManagement = () => {
       }
 
       fetchImages();
-      toast.success(`Parallel analyzed ${totalImages - failedEnqueue} images${failedEnqueue ? ` (${failedEnqueue} failed to enqueue)` : ''}`);
+      toast.success(`Đã phân tích ${totalImages - failedEnqueue} hình ảnh${failedEnqueue ? ` (${failedEnqueue} thất bại)` : ''}`);
     } finally {
       setAnalyzingState(false);
       clearAnalyzingImages();
@@ -336,11 +336,11 @@ const ImageManagement = () => {
 
   const handleDeleteSelected = async () => {
     if (selectedImages.size === 0) {
-      toast.warn("Please select at least one image to delete");
+      toast.warn("Vui lòng chọn ít nhất một hình ảnh để xóa");
       return;
     }
 
-    const confirmDelete = await confirm({title:"Delete images",message:`Delete ${selectedImages.size} images?`,type:"danger",confirmText:"Delete"});
+    const confirmDelete = await confirm({title:"Xóa hình ảnh",message:`Xóa ${selectedImages.size} hình ảnh?`,type:"danger",confirmText:"Xóa"});
     if(!confirmDelete) return;
 
     console.log(`[ImageManagement] Starting bulk delete for ${selectedImages.size} selected images`);
@@ -368,9 +368,9 @@ const ImageManagement = () => {
       handleRefresh();
       
       if (errorCount > 0) {
-        toast.success(`Deleted ${successCount} images, ${errorCount} failed`);
+        toast.success(`Đã xóa ${successCount} hình ảnh, ${errorCount} thất bại`);
       } else {
-        toast.success(`Deleted ${successCount} images`);
+        toast.success(`Đã xóa ${successCount} hình ảnh`);
       }
     } finally {
       setDeletingState(false);
@@ -394,12 +394,11 @@ const ImageManagement = () => {
 
   return (
     <div className="relative">
+      {/* ✅ OPTIMIZED: Lightweight loading indicator in button instead of full-screen overlay */}
       {isRefreshing && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
-          <div className="flex flex-col items-center gap-4 p-8 bg-white/80 rounded-2xl shadow-2xl">
-            <FaSpinner className="animate-spin text-4xl text-red-500" />
-            <span className="text-lg font-semibold text-gray-700">Loading...</span>
-          </div>
+        <div className="fixed top-4 right-4 z-40 bg-white/90 backdrop-blur-sm rounded-xl shadow-lg p-3 flex items-center gap-3">
+          <FaSpinner className="animate-spin text-xl text-red-500" />
+          <span className="text-sm font-medium text-gray-700">Đang tải...</span>
         </div>
       )}
 
@@ -407,7 +406,7 @@ const ImageManagement = () => {
       {isAnalyzing && (
         <div className="fixed bottom-4 left-4 right-4 md:left-1/2 md:-translate-x-1/2 md:w-1/2 z-40 bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg p-4">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-700">Analyzing images...</span>
+            <span className="text-sm font-medium text-gray-700">Đang phân tích hình ảnh...</span>
             <span className="text-sm font-medium text-gray-700">{analyzeProgress.completed}/{analyzeProgress.total}</span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
@@ -422,7 +421,7 @@ const ImageManagement = () => {
       <div className="p-4">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-navy-700 dark:text-white">
-            Image Management
+            Quản lý hình ảnh
           </h2>
           <div className="flex items-center gap-3">
             {/* Select All Button */}
@@ -437,12 +436,12 @@ const ImageManagement = () => {
               {selectedImages.size === images.length && images.length > 0 ? (
                 <>
                   <MdCheckBox className="h-4 w-4 mr-2" />
-                  Deselect All
+                  Bỏ chọn tất cả
                 </>
               ) : (
                 <>
                   <MdCheckBoxOutlineBlank className="h-4 w-4 mr-2" />
-                  Select All
+                  Chọn tất cả
                 </>
               )}
             </button>
@@ -454,7 +453,7 @@ const ImageManagement = () => {
                 className="flex items-center px-4 py-2 rounded-xl bg-gradient-to-r from-red-500 to-red-600 text-white transition duration-200 hover:from-red-600 hover:to-red-700 active:from-red-700 active:to-red-800"
               >
                 <MdSort className="h-4 w-4 mr-2" />
-                Sort by {getSortFieldDisplayName(sortField)}
+                Sắp xếp theo {getSortFieldDisplayName(sortField)}
                 <MdKeyboardArrowDown className="h-4 w-4 ml-2" />
               </button>
               
@@ -462,7 +461,7 @@ const ImageManagement = () => {
                 <div className="absolute top-full left-0 mt-2 w-48 bg-white dark:bg-navy-800 rounded-xl shadow-lg border border-gray-200 dark:border-navy-700 z-50">
                   <div className="py-2">
                     <div className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-white border-b border-gray-200 dark:border-navy-700">
-                      Sort by Field
+                      Sắp xếp theo
                     </div>
                     <button
                       onClick={() => handleSortFieldChange("CreatedAt")}
@@ -470,7 +469,7 @@ const ImageManagement = () => {
                         sortField === "CreatedAt" ? "text-brand-500 font-medium" : "text-gray-700 dark:text-white"
                       }`}
                     >
-                      Date
+                      Ngày tạo
                     </button>
                     <button
                       onClick={() => handleSortFieldChange("ImageName")}
@@ -478,7 +477,7 @@ const ImageManagement = () => {
                         sortField === "ImageName" ? "text-brand-500 font-medium" : "text-gray-700 dark:text-white"
                       }`}
                     >
-                      Name
+                      Tên
                     </button>
                     <button
                       onClick={() => handleSortFieldChange("Status")}
@@ -486,7 +485,7 @@ const ImageManagement = () => {
                         sortField === "Status" ? "text-brand-500 font-medium" : "text-gray-700 dark:text-white"
                       }`}
                     >
-                      Status
+                      Trạng thái
                     </button>
                   </div>
                 </div>
@@ -512,7 +511,7 @@ const ImageManagement = () => {
               }`}
             >
               <MdRefresh className={`h-4 w-4 mr-2 ${isRefreshing ? "animate-spin" : ""}`} />
-              {isRefreshing ? "Refreshing..." : "Refresh"}
+              {isRefreshing ? "Đang làm mới..." : "Làm mới"}
             </button>
           </div>
         </div>
@@ -523,7 +522,7 @@ const ImageManagement = () => {
             onClick={() => setCurrentFolder("")}
             className="flex items-center gap-1 px-3 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm transition"
           >
-            <MdFolderOpen className="h-4 w-4" /> All Folders
+            <MdFolderOpen className="h-4 w-4" /> Tất cả thư mục
           </button>
 
           {/* Folder dropdown */}
@@ -532,7 +531,7 @@ const ImageManagement = () => {
             onChange={handleFolderChange}
             className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
           >
-            <option value="">All Folders</option>
+            <option value="">Tất cả thư mục</option>
             {folders.map((f) => {
               const depth = f.split("/").length - 1;
               const name = f.split("/").pop();
@@ -551,7 +550,7 @@ const ImageManagement = () => {
             }}
             className="flex items-center gap-1 px-3 py-2 rounded-lg bg-gradient-to-r from-red-500 to-red-600 text-white text-sm hover:from-red-600 hover:to-red-700 active:from-red-700 active:to-red-800 shadow-md"
           >
-            <MdFolder className="h-4 w-4" /> New Folder
+            <MdFolder className="h-4 w-4" /> Thư mục mới
           </button>
 
           {/* Rename Folder */}
@@ -564,7 +563,7 @@ const ImageManagement = () => {
               }}
               className="flex items-center gap-1 px-3 py-2 rounded-lg bg-yellow-500 text-white text-sm hover:bg-yellow-600"
             >
-              <MdEdit className="h-4 w-4" /> Rename
+              <MdEdit className="h-4 w-4" /> Đổi tên
             </button>
           )}
 
@@ -577,7 +576,7 @@ const ImageManagement = () => {
               }}
               className="flex items-center gap-1 px-3 py-2 rounded-lg bg-red-500 text-white text-sm hover:bg-red-600"
             >
-              <MdDelete className="h-4 w-4" /> Delete
+              <MdDelete className="h-4 w-4" /> Xóa
             </button>
           )}
 
@@ -587,7 +586,7 @@ const ImageManagement = () => {
 
         {/* Breadcrumb navigation */}
         <div className="mb-4 text-sm flex items-center flex-wrap gap-1">
-          <button onClick={() => setCurrentFolder("")} className="text-brand-500 hover:underline">Root</button>
+          <button onClick={() => setCurrentFolder("")} className="text-brand-500 hover:underline">Gốc</button>
           {currentFolder && currentFolder.split("/").map((part, idx, arr) => {
             const path = arr.slice(0, idx + 1).join("/");
             return (
@@ -603,7 +602,7 @@ const ImageManagement = () => {
         {selectedImages.size > 0 && (
           <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
             <p className="text-blue-800 font-medium">
-              {selectedImages.size} of {images.length} images selected
+              Đã chọn {selectedImages.size} / {images.length} hình ảnh
             </p>
           </div>
         )}
@@ -632,7 +631,7 @@ const ImageManagement = () => {
         </div>
 
         <div className="flex justify-center mt-6 gap-1">
-          <button disabled={currentPage===1} onClick={()=>setCurrentPage(p=>p-1)} className="px-2.5 py-1 rounded bg-gray-200 hover:bg-gray-300 disabled:opacity-50">Prev</button>
+          <button disabled={currentPage===1} onClick={()=>setCurrentPage(p=>p-1)} className="px-2.5 py-1 rounded bg-gray-200 hover:bg-gray-300 disabled:opacity-50">Trước</button>
           {Array.from({length: totalPages}).map((_,idx)=>{
             const page=idx+1;
             if(totalPages>7){
@@ -647,12 +646,12 @@ const ImageManagement = () => {
               <button key={page} onClick={()=>setCurrentPage(page)} className={`px-2.5 py-1 rounded ${page===currentPage?"bg-brand-500 text-white":"bg-gray-200 hover:bg-gray-300"}`}>{page}</button>
             );
           })}
-          <button disabled={currentPage===totalPages} onClick={()=>setCurrentPage(p=>p+1)} className="px-2.5 py-1 rounded bg-gray-200 hover:bg-gray-300 disabled:opacity-50">Next</button>
+          <button disabled={currentPage===totalPages} onClick={()=>setCurrentPage(p=>p+1)} className="px-2.5 py-1 rounded bg-gray-200 hover:bg-gray-300 disabled:opacity-50">Sau</button>
         </div>
 
         <div className="flex justify-end mt-4">
           <select value={itemsPerPage} onChange={(e)=>setItemsPerPage(parseInt(e.target.value))} className="border px-2 py-1 rounded text-sm">
-            {[10,20,30,40,50].map(n=>(<option key={n} value={n}>{n} / page</option>))}
+            {[10,20,30,40,50].map(n=>(<option key={n} value={n}>{n} / trang</option>))}
           </select>
         </div>
       </div>
@@ -661,12 +660,12 @@ const ImageManagement = () => {
       {showNewFolderModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
           <div className="bg-white dark:bg-navy-800 rounded-2xl shadow-xl w-96 p-6">
-            <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-4">Create New Folder</h3>
+            <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-4">Tạo thư mục mới</h3>
             <input
               type="text"
               value={newFolderName}
               onChange={(e) => setNewFolderName(e.target.value)}
-              placeholder="Folder name"
+              placeholder="Tên thư mục"
               className="w-full px-4 py-2 mb-3 rounded-lg border border-gray-200 focus:ring-2 focus:ring-brand-500 focus:outline-none"
             />
             {modalError && <p className="text-red-500 text-sm mb-2">{modalError}</p>}
@@ -675,12 +674,12 @@ const ImageManagement = () => {
                 onClick={() => setShowNewFolderModal(false)}
                 className="px-4 py-2 rounded-lg bg-gray-200 text-gray-700 text-sm hover:bg-gray-300"
               >
-                Cancel
+                Hủy
               </button>
               <button
                 onClick={async () => {
                   if (!newFolderName.trim()) {
-                    setModalError("Folder name is required");
+                    setModalError("Tên thư mục là bắt buộc");
                     return;
                   }
                   const newPath = currentFolder ? `${currentFolder}/${newFolderName.trim()}` : newFolderName.trim();
@@ -691,12 +690,12 @@ const ImageManagement = () => {
                     await fetchImages(folderData.folders || []);
                     setShowNewFolderModal(false);
                   } catch (e) {
-                    setModalError(e.message || "Failed to create folder");
+                    setModalError(e.message || "Không thể tạo thư mục");
                   }
                 }}
                 className="px-4 py-2 rounded-lg bg-brand-500 text-white text-sm hover:bg-brand-600"
               >
-                Create
+                Tạo
               </button>
             </div>
           </div>

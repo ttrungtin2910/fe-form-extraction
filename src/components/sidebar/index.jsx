@@ -89,8 +89,8 @@ const Sidebar = ({ open, onClose }) => {
               <FaPlayCircle className="h-4 w-4 mr-2" />
             )}
             {isAnalyzing 
-              ? `Processing... (${analyzeProgress.completed}/${analyzeProgress.total})`
-              : `Analyze Selected (${selectedImages.size})`
+              ? `Đang xử lý... (${analyzeProgress.completed}/${analyzeProgress.total})`
+              : `Phân tích đã chọn (${selectedImages.size})`
             }
           </button>
 
@@ -109,7 +109,7 @@ const Sidebar = ({ open, onClose }) => {
             ) : (
               <FaTrash className="h-4 w-4 mr-2" />
             )}
-            {isDeleting ? "Deleting..." : `Delete Selected (${selectedImages.size})`}
+            {isDeleting ? "Đang xóa..." : `Xóa đã chọn (${selectedImages.size})`}
           </button>
         </div>
       </div>
@@ -122,11 +122,11 @@ const Sidebar = ({ open, onClose }) => {
             className="w-full flex items-center justify-center px-4 py-3 rounded-xl text-white bg-red-500 hover:bg-red-600 active:bg-red-700 transition duration-200"
           >
             <MdLogout className="h-5 w-5 mr-2" />
-            Logout
+            Đăng xuất
           </button>
           {user && (
             <p className="text-xs text-center text-gray-600 dark:text-gray-400 mt-2">
-              Signed in as <span className="font-medium">{user.username}</span>
+              Đã đăng nhập: <span className="font-medium">{user.username}</span>
             </p>
           )}
         </div>

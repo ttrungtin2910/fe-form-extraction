@@ -10,6 +10,7 @@ import { api } from "config/api";
 import { useImageManagement } from "contexts/ImageManagementContext";
 import { POLLING_CONFIG } from "../../config/polling";
 import { useToast, useConfirm } from "components/common/ToastProvider";
+import { translateStatus } from "utils/statusTranslator";
 
 const NftCard = ({ 
   title, 
@@ -100,14 +101,14 @@ const NftCard = ({
   };
 
   const handleDeleteClick = async () => {
-    const ok = await confirmModal({title:"Delete image",message:`Delete \"${title}\"?`,type:"danger",confirmText:"Delete"});
+    const ok = await confirmModal({title:"Xóa hình ảnh",message:`Xóa \"${title}\"?`,type:"danger",confirmText:"Xóa"});
     if(!ok) return;
 
     console.log(`[NftCard] Starting deletion for image: ${title}`);
     setDeleteLoading(true);
     try {
       const result = await api.images.delete(title);
-      toast.success("Image deleted");
+      toast.success("Đã xóa hình ảnh");
       
       // Call the parent callback if provided
       if (onDelete) {
@@ -238,7 +239,7 @@ const NftCard = ({
           <div className="absolute top-3 right-3 z-10">
             <div className={`flex items-center space-x-1 px-3 py-1 rounded-full border ${getStatusColor(status)} shadow-sm`}>
               {getStatusIcon(status)}
-              <span className="text-xs font-medium">{status}</span>
+              <span className="text-xs font-medium">{translateStatus(status)}</span>
             </div>
           </div>
         </div>
@@ -281,7 +282,7 @@ const NftCard = ({
               ) : (
                 <FaPlayCircle className="h-4 w-4 mr-2" />
               )}
-              {isProcessing ? "Processing" : "Analyze"}
+              {isProcessing ? "Đang xử lý" : "Phân tích"}
             </button>
 
             {/* Delete Button */}

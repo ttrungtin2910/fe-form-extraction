@@ -58,10 +58,9 @@ const Synchronization = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // ✅ REMOVED: Artificial delay - no need for fake loading
   useEffect(() => {
-    setLoading(true);
-    const timer = setTimeout(() => setLoading(false), 800);
-    return () => clearTimeout(timer);
+    // Component is ready immediately
   }, []);
 
   const handleToggle = (idx) => {
@@ -94,7 +93,7 @@ const Synchronization = () => {
   const handleDialogSave = () => {
     // Validate required fields
     if (!newEndpoint.id || !newEndpoint.name || !newEndpoint.url) {
-      setError("ID, CRM Name, and Endpoint URL are required.");
+      setError("ID, Tên CRM và URL điểm cuối là bắt buộc.");
       return;
     }
     setData((prev) => [...prev, newEndpoint]);
@@ -105,22 +104,14 @@ const Synchronization = () => {
 
   return (
     <div className="p-4 bg-gray-50 min-h-screen relative">
-      {/* Loading Overlay */}
-      {loading && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
-          <div className="flex flex-col items-center gap-4 p-8 bg-white/80 rounded-2xl shadow-2xl">
-            <FaSpinner className="animate-spin text-4xl text-red-500" />
-            <span className="text-lg font-semibold text-gray-700">Loading...</span>
-          </div>
-        </div>
-      )}
+      {/* ✅ REMOVED: Fake loading overlay */}
       <div className="max-w-6xl mx-auto">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <div className="relative w-full sm:w-80">
             <input
               type="text"
               className="w-full pl-11 pr-16 py-2.5 rounded-full border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-red-200 text-gray-700 shadow-sm text-base transition"
-              placeholder="Search endpoints"
+              placeholder="Tìm kiếm điểm cuối"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -131,7 +122,7 @@ const Synchronization = () => {
             className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-gradient-to-r from-red-400 to-red-600 hover:from-red-500 hover:to-red-700 text-white font-bold text-base shadow-lg transition-all duration-200 focus:outline-none"
             onClick={() => setShowDialog(true)}
           >
-            <MdAdd className="text-2xl" /> Add new endpoint
+            <MdAdd className="text-2xl" /> Thêm điểm cuối mới
           </button>
         </div>
         <div className="rounded-2xl shadow-xl border border-gray-100 bg-white overflow-hidden">
@@ -140,12 +131,12 @@ const Synchronization = () => {
               <thead className="bg-gray-100 sticky top-0 z-10">
                 <tr>
                   <th className="px-4 py-3 text-left font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap">ID</th>
-                  <th className="px-4 py-3 text-left font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap">CRM Name</th>
-                  <th className="px-4 py-3 text-left font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap">CRM Description</th>
-                  <th className="px-4 py-3 text-left font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap">Endpoint URL</th>
-                  <th className="px-4 py-3 text-left font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap">Authentication ID</th>
-                  <th className="px-4 py-3 text-left font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap">Password</th>
-                  <th className="px-4 py-3 text-center font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap">Action</th>
+                  <th className="px-4 py-3 text-left font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap">Tên CRM</th>
+                  <th className="px-4 py-3 text-left font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap">Mô tả CRM</th>
+                  <th className="px-4 py-3 text-left font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap">URL điểm cuối</th>
+                  <th className="px-4 py-3 text-left font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap">ID xác thực</th>
+                  <th className="px-4 py-3 text-left font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap">Mật khẩu</th>
+                  <th className="px-4 py-3 text-center font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap">Thao tác</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-100">
@@ -163,7 +154,7 @@ const Synchronization = () => {
                     <td className="px-4 py-3 text-center">
                       <ActionButton
                         onClick={() => handleToggle(idx)}
-                        tooltip={item.enabled ? "Disable endpoint" : "Enable endpoint"}
+                        tooltip={item.enabled ? "Tắt điểm cuối" : "Bật điểm cuối"}
                         color=""
                       >
                         {item.enabled ? (
@@ -172,12 +163,12 @@ const Synchronization = () => {
                           <BsToggleOff className="text-2xl text-gray-400 transition" />
                         )}
                       </ActionButton>
-                      <ActionButton tooltip="Save changes" color="">
+                      <ActionButton tooltip="Lưu thay đổi" color="">
                         <FiSave className="text-2xl text-green-500 transition" />
                       </ActionButton>
                       <ActionButton
                         onClick={() => handleDelete(idx)}
-                        tooltip="Delete endpoint"
+                        tooltip="Xóa điểm cuối"
                         color=""
                       >
                         <MdDelete className="text-2xl text-red-500 transition" />
@@ -190,8 +181,8 @@ const Synchronization = () => {
                     <td colSpan={7} className="text-center text-gray-400 py-16">
                       <div className="flex flex-col items-center gap-2">
                         <svg width="48" height="48" fill="none" viewBox="0 0 24 24"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10Zm-1-5h2v2h-2v-2Zm0-8h2v6h-2V9Z" fill="#e5e7eb"/></svg>
-                        <span className="text-lg font-semibold">No endpoints found.</span>
-                        <span className="text-sm text-gray-400">Try adjusting your search or add a new endpoint.</span>
+                        <span className="text-lg font-semibold">Không tìm thấy điểm cuối.</span>
+                        <span className="text-sm text-gray-400">Thử điều chỉnh tìm kiếm hoặc thêm điểm cuối mới.</span>
                       </div>
                     </td>
                   </tr>
@@ -212,7 +203,7 @@ const Synchronization = () => {
                   <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
                   <div className="w-3 h-3 bg-green-500 rounded-full"></div>
                 </div>
-                <h3 className="text-base font-semibold text-gray-700 flex-1 text-center">Add New Endpoint</h3>
+                <h3 className="text-base font-semibold text-gray-700 flex-1 text-center">Thêm điểm cuối mới</h3>
                 <button
                   className="text-gray-400 hover:text-red-500 transition duration-200 p-1 rounded-full hover:bg-red-50"
                   onClick={() => { setShowDialog(false); setError(""); }}
@@ -228,35 +219,35 @@ const Synchronization = () => {
                     <input name="id" value={newEndpoint.id} onChange={handleDialogChange} className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-red-200 focus:outline-none" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">CRM Name <span className="text-red-500">*</span></label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Tên CRM <span className="text-red-500">*</span></label>
                     <input name="name" value={newEndpoint.name} onChange={handleDialogChange} className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-red-200 focus:outline-none" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">CRM Description</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Mô tả CRM</label>
                     <input name="description" value={newEndpoint.description} onChange={handleDialogChange} className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-red-200 focus:outline-none" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Endpoint URL <span className="text-red-500">*</span></label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">URL điểm cuối <span className="text-red-500">*</span></label>
                     <input name="url" value={newEndpoint.url} onChange={handleDialogChange} className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-red-200 focus:outline-none" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Authentication ID</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">ID xác thực</label>
                     <input name="authId" value={newEndpoint.authId} onChange={handleDialogChange} className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-red-200 focus:outline-none" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Mật khẩu</label>
                     <input name="password" value={newEndpoint.password} onChange={handleDialogChange} className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-red-200 focus:outline-none" type="password" />
                   </div>
                   <div className="flex items-center gap-2 mt-2">
                     <input type="checkbox" name="enabled" checked={newEndpoint.enabled} onChange={handleDialogChange} id="enabled" className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-200" />
-                    <label htmlFor="enabled" className="text-sm text-gray-700">Enable endpoint</label>
+                    <label htmlFor="enabled" className="text-sm text-gray-700">Bật điểm cuối</label>
                   </div>
                   {error && <div className="text-red-500 text-sm mt-1">{error}</div>}
                   <button
                     className="mt-4 w-full py-2 rounded-lg bg-gradient-to-r from-red-400 to-red-600 hover:from-red-500 hover:to-red-700 text-white font-bold text-base shadow-lg transition-all duration-200 focus:outline-none"
                     onClick={handleDialogSave}
                   >
-                    Save
+                    Lưu
                   </button>
                 </div>
               </div>
