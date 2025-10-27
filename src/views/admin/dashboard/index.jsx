@@ -703,8 +703,16 @@ const Dashboard = () => {
                           )}
                         </button>
                       </td>
-                      <td className="px-3 py-2 font-medium text-gray-900 text-sm">
-                        {img.ImageName}
+                      <td className="px-3 py-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRowClick(img);
+                          }}
+                          className="text-left font-medium text-blue-600 hover:text-red-600 hover:underline text-sm transition-colors"
+                        >
+                          {img.ImageName}
+                        </button>
                       </td>
                       <td className="px-3 py-2">
                         {img.FolderPath ? (
@@ -832,11 +840,31 @@ const Dashboard = () => {
       {/* Image Detail Dialog */}
       {showImageDialog && selectedImage && (
         <ImageDialog
-          image={selectedImage}
+          open={showImageDialog}
+          image={selectedImage.ImagePath}
           title={selectedImage.ImageName}
+          size={selectedImage.Size}
+          status={selectedImage.Status}
+          createAt={selectedImage.CreatedAt}
+          folderPath={selectedImage.FolderPath}
+          uploadBy={selectedImage.UploadBy}
           onClose={() => {
             setShowImageDialog(false);
             setSelectedImage(null);
+          }}
+          onAnalyze={async (result) => {
+            if (result) {
+              toast.success("Phân tích thành công");
+              fetchImages();
+            }
+          }}
+          onDelete={(imageName) => {
+            setImages(prev => prev.filter(img => img.ImageName !== imageName));
+            setSelected(prev => prev.filter(name => name !== imageName));
+            toast.success("Đã xóa hình ảnh");
+          }}
+          onRefresh={() => {
+            fetchImages();
           }}
         />
       )}
