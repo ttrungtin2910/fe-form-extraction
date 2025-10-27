@@ -1,4 +1,6 @@
 import { MdFolder, MdPlayArrow, MdDelete } from "react-icons/md";
+import { IoFolderOpenOutline, IoPlayOutline, IoTrashOutline } from "react-icons/io5";
+import { FaFolderOpen, FaPlay, FaTrash, FaSpinner } from "react-icons/fa";
 import { api } from "config/api";
 import { api as apiFE } from "config/api";
 import { useEffect, useState } from "react";
@@ -106,25 +108,54 @@ const FolderCard = ({ path, currentFolder, onNavigate, onRefresh }) => {
   };
 
   return (
-    <div className="group relative flex flex-col items-center justify-center bg-white dark:bg-navy-700 border border-gray-200 rounded-xl p-6 shadow hover:shadow-xl hover:border-brand-500 transition cursor-pointer" onClick={() => onNavigate(path)}>
-      <MdFolder className="h-12 w-12 text-brand-500 mb-2" />
-      <span className="text-sm font-medium text-gray-800 dark:text-white truncate w-full text-center">{folderName}</span>
-      {(imgCount!==null || folderCount!==null) && (
-        <span className="text-xs text-gray-500 mt-1">
-          {folderCount!==null && `${folderCount} folders`}{folderCount!==null && imgCount!==null && ", "}{imgCount!==null && `${imgCount} images`}
-        </span>
-      )}
-      {/* Action buttons */}
-      <div className="absolute top-2 right-2 flex gap-2 opacity-60 group-hover:opacity-100 transition-opacity">
-        <button onClick={(e)=>{e.stopPropagation();handleAnalyze();}} disabled={processing} className="p-1 bg-brand-500 hover:bg-brand-600 rounded text-white text-xs min-w-[70px] flex items-center justify-center gap-1">
+    <div className="group relative flex flex-col bg-gradient-to-br from-white to-gray-50 dark:bg-gradient-to-br dark:from-navy-700 dark:to-navy-800 border border-gray-200 dark:border-navy-600 rounded-2xl shadow-lg hover:shadow-2xl hover:border-blue-400 transition-all duration-300 cursor-pointer min-h-[220px]" onClick={() => onNavigate(path)}>
+      <div className="flex flex-col items-center justify-center flex-1 p-6 pb-20">
+        <div className="p-5 bg-gradient-to-r from-blue-100 to-indigo-100 dark:from-blue-900 dark:to-indigo-900 rounded-2xl mb-4">
+          <IoFolderOpenOutline className="h-14 w-14 text-blue-600 dark:text-blue-400" />
+        </div>
+        <span className="text-base font-semibold text-gray-800 dark:text-white truncate w-full text-center mb-2">{folderName}</span>
+        {(imgCount!==null || folderCount!==null) && (
+          <span className="text-sm text-gray-500">
+            {folderCount!==null && `${folderCount} thư mục`}{folderCount!==null && imgCount!==null && ", "}{imgCount!==null && `${imgCount} hình ảnh`}
+          </span>
+        )}
+      </div>
+      {/* Action buttons - Bottom of card */}
+      <div className="absolute bottom-4 left-4 right-4 flex items-center space-x-2 pt-4 border-t border-gray-200 dark:border-navy-600 bg-white dark:bg-transparent">
+        {/* Analyze Button */}
+        <button
+          onClick={(e)=>{e.stopPropagation();handleAnalyze();}}
+          disabled={processing}
+          className={`flex-1 flex items-center justify-center rounded-lg px-4 py-2.5 text-sm font-medium transition-all duration-200 z-10 ${
+            processing
+              ? "bg-gray-100 text-gray-500 cursor-not-allowed"
+              : "bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700 active:from-red-700 active:to-red-800 shadow-md hover:shadow-lg"
+          }`}
+        >
           {processing ? (
-            <svg className="animate-spin h-3 w-3 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path></svg>
+            <FaSpinner className="h-4 w-4 mr-2 animate-spin" />
           ) : (
-            <MdPlayArrow/>
+            <FaPlay className="h-4 w-4 mr-2" />
           )}
-          {processing ? 'Processing' : 'Analyze'}
+          {processing ? "Đang xử lý" : "Phân tích"}
         </button>
-        <button onClick={(e)=>{e.stopPropagation();handleDelete();}} disabled={processing} className="p-1 bg-red-500 hover:bg-red-600 rounded text-white text-xs"><MdDelete/></button>
+
+        {/* Delete Button */}
+        <button
+          onClick={(e)=>{e.stopPropagation();handleDelete();}}
+          disabled={processing}
+          className={`flex items-center justify-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 z-10 ${
+            processing
+              ? "bg-gray-100 text-gray-500 cursor-not-allowed"
+              : "bg-gradient-to-r from-gray-500 to-gray-600 text-white hover:from-gray-600 hover:to-gray-700 active:from-gray-700 active:to-gray-800 shadow-md hover:shadow-lg"
+          }`}
+        >
+          {processing ? (
+            <FaSpinner className="h-4 w-4 animate-spin" />
+          ) : (
+            <FaTrash className="h-4 w-4" />
+          )}
+        </button>
       </div>
       {processing && (
         <div className="absolute inset-0 bg-white/70 dark:bg-navy-700/70 flex items-center justify-center rounded-xl">

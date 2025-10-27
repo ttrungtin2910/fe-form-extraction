@@ -148,7 +148,7 @@ const DisplayStudentForm = ({ data, isEditing = false, onDataChange }) => {
           />
         </div>
         <div>
-          <label className="block text-sm font-semibold text-blue-700 mb-1">Điện thoại phụ huynh:</label>
+          <label className="block text-sm font-semibold text-blue-700 mb-1">SĐT phụ huynh:</label>
           <input 
             value={getSafe(data.dien_thoai_phu_huynh)} 
             onChange={(e) => handleFieldChange('dien_thoai_phu_huynh', e.target.value)}

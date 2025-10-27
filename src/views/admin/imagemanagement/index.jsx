@@ -2,8 +2,10 @@ import { useEffect, useState } from "react";
 import NftCard from "components/image/NftCard";
 import FolderCard from "components/folder/FolderCard";
 import UploadButton from "components/button/UploadButton";
-import { MdRefresh, MdSort, MdKeyboardArrowDown, MdCheckBox, MdCheckBoxOutlineBlank, MdFolder, MdEdit, MdDelete, MdFolderOpen } from "react-icons/md";
-import { FaPlayCircle, FaTrash, FaSpinner } from "react-icons/fa";
+import { MdRefresh, MdSort, MdKeyboardArrowDown, MdCheckBox, MdCheckBoxOutlineBlank, MdFolder, MdEdit, MdDelete, MdFolderOpen, MdHome, MdArrowBack } from "react-icons/md";
+import { FaPlayCircle, FaTrash, FaSpinner, FaFileImage, FaFolderOpen, FaImages, FaPlus, FaUpload } from "react-icons/fa";
+import { HiOutlineFolderOpen, HiOutlinePhotograph, HiOutlineHome, HiOutlineArrowLeft } from "react-icons/hi";
+import { IoFolderOpenOutline, IoImagesOutline, IoHomeOutline, IoArrowBackOutline } from "react-icons/io5";
 import { api } from "config/api";
 import { useImageManagement } from "contexts/ImageManagementContext";
 import FolderModal from "components/folder/FolderModal";
@@ -420,9 +422,7 @@ const ImageManagement = () => {
 
       <div className="p-4">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-navy-700 dark:text-white">
-            Quản lý hình ảnh
-          </h2>
+          {/* Removed redundant title - already in breadcrumb */}
           <div className="flex items-center gap-3">
             {/* Select All Button */}
             <button
@@ -518,12 +518,13 @@ const ImageManagement = () => {
 
         <div className="flex items-center gap-3 mb-4">
           {/* All Folders quick button */}
-          <button
-            onClick={() => setCurrentFolder("")}
-            className="flex items-center gap-1 px-3 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-700 text-sm transition"
-          >
-            <MdFolderOpen className="h-4 w-4" /> Tất cả thư mục
-          </button>
+            <button
+              onClick={() => setCurrentFolder("")}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 text-gray-700 text-sm transition-all duration-200 border border-gray-300"
+            >
+              <IoHomeOutline className="h-4 w-4" /> 
+              <span className="font-medium">Tất cả thư mục</span>
+            </button>
 
           {/* Folder dropdown */}
           <select
@@ -548,9 +549,10 @@ const ImageManagement = () => {
               setModalError("");
               setShowNewFolderModal(true);
             }}
-            className="flex items-center gap-1 px-3 py-2 rounded-lg bg-gradient-to-r from-red-500 to-red-600 text-white text-sm hover:from-red-600 hover:to-red-700 active:from-red-700 active:to-red-800 shadow-md"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 text-white text-sm hover:from-blue-600 hover:to-indigo-700 active:from-blue-700 active:to-indigo-800 shadow-lg hover:shadow-xl transition-all duration-200"
           >
-            <MdFolder className="h-4 w-4" /> Thư mục mới
+            <FaPlus className="h-4 w-4" /> 
+            <span className="font-medium">Thư mục mới</span>
           </button>
 
           {/* Rename Folder */}
@@ -584,18 +586,37 @@ const ImageManagement = () => {
           <UploadButton onUploadComplete={handleRefresh} folderPath={currentFolder} />
         </div>
 
-        {/* Breadcrumb navigation */}
-        <div className="mb-4 text-sm flex items-center flex-wrap gap-1">
-          <button onClick={() => setCurrentFolder("")} className="text-brand-500 hover:underline">Gốc</button>
-          {currentFolder && currentFolder.split("/").map((part, idx, arr) => {
-            const path = arr.slice(0, idx + 1).join("/");
-            return (
-              <span key={path} className="flex items-center gap-1">
-                <span className="text-gray-400">/</span>
-                <button onClick={() => setCurrentFolder(path)} className="text-brand-500 hover:underline">{part}</button>
-              </span>
-            );
-          })}
+        {/* Breadcrumb navigation with back button */}
+        <div className="mb-4">
+          <div className="flex items-center gap-2 text-sm">
+            {currentFolder && (
+              <button 
+                onClick={() => {
+                  const parentFolder = currentFolder.split("/").slice(0, -1).join("/");
+                  setCurrentFolder(parentFolder);
+                }}
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl text-blue-700 hover:from-blue-100 hover:to-indigo-100 transition-all duration-200 shadow-sm hover:shadow-md"
+              >
+                <IoArrowBackOutline className="text-lg" />
+                <span className="font-medium">Quay lại</span>
+              </button>
+            )}
+            <div className="flex items-center flex-wrap gap-1 ml-2">
+              <button onClick={() => setCurrentFolder("")} className="flex items-center gap-2 px-3 py-1.5 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-lg text-amber-700 hover:from-amber-100 hover:to-orange-100 transition-all duration-200 font-medium">
+                <IoHomeOutline className="text-lg" />
+                <span>Gốc</span>
+              </button>
+              {currentFolder && currentFolder.split("/").map((part, idx, arr) => {
+                const path = arr.slice(0, idx + 1).join("/");
+                return (
+                  <span key={path} className="flex items-center gap-1">
+                    <span className="text-gray-400">/</span>
+                    <button onClick={() => setCurrentFolder(path)} className="text-brand-500 hover:text-brand-600 font-medium">{part}</button>
+                  </span>
+                );
+              })}
+            </div>
+          </div>
         </div>
 
         {/* Selection Info */}
@@ -607,28 +628,79 @@ const ImageManagement = () => {
           </div>
         )}
 
-  <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-4">
-          {currentPage===1 && childFolders.map((fp) => (
-            <FolderCard key={fp} path={fp} currentFolder={currentFolder} onNavigate={setCurrentFolder} onRefresh={handleRefresh} />
-          ))}
-          {images.map((img, index) => (
-            <NftCard
-              key={index}
-              title={img.ImageName}
-              author={new Date(img.CreatedAt).toLocaleDateString()}
-              size={img.Size || "—"}
-              image={img.ImagePath}
-              status={img.Status}
-              createAt={img.CreatedAt}
-              folderPath={img.FolderPath}
-              isSelected={selectedImages.has(img.ImageName)}
-              onSelect={handleImageSelect}
-              onDelete={handleImageDelete}
-              onAnalyze={handleImageAnalyze}
-              onRefresh={handleRefresh}
-            />
-          ))}
-        </div>
+  {/* Folders Section - Always visible on first page */}
+          {childFolders.length > 0 && currentPage === 1 && (
+            <div className="mb-8">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl">
+                  <IoFolderOpenOutline className="text-2xl text-blue-600" />
+                  <h2 className="text-xl font-bold text-blue-800">Thư mục ({childFolders.length})</h2>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-4">
+                {childFolders.map((fp) => (
+                  <FolderCard key={fp} path={fp} currentFolder={currentFolder} onNavigate={setCurrentFolder} onRefresh={handleRefresh} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Images Section */}
+          {images.length > 0 ? (
+            <div className={childFolders.length > 0 && currentPage === 1 ? '' : ''}>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl">
+                  <IoImagesOutline className="text-2xl text-green-600" />
+                  <h2 className="text-xl font-bold text-green-800">Hình ảnh ({images.length})</h2>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-4">
+                {images.map((img, index) => (
+                  <NftCard
+                    key={index}
+                    title={img.ImageName}
+                    author={new Date(img.CreatedAt).toLocaleDateString()}
+                    size={img.Size || "—"}
+                    image={img.ImagePath}
+                    status={img.Status}
+                    createAt={img.CreatedAt}
+                    folderPath={img.FolderPath}
+                    isSelected={selectedImages.has(img.ImageName)}
+                    onSelect={handleImageSelect}
+                    onDelete={handleImageDelete}
+                    onAnalyze={handleImageAnalyze}
+                    onRefresh={handleRefresh}
+                  />
+                ))}
+              </div>
+            </div>
+          ) : (
+            /* Empty State */
+            currentPage === 1 && childFolders.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-20 bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl border-2 border-dashed border-gray-300">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-4 bg-gradient-to-r from-gray-100 to-gray-200 rounded-2xl">
+                    <IoFolderOpenOutline className="text-6xl text-gray-400" />
+                  </div>
+                </div>
+                <h3 className="text-2xl font-bold text-gray-600 mb-3">Thư mục trống</h3>
+                <p className="text-gray-500 text-center max-w-md">Tạo thư mục mới hoặc tải ảnh lên để bắt đầu quản lý</p>
+                <div className="flex gap-3 mt-6">
+                  <button 
+                    onClick={() => setShowNewFolderModal(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 shadow-lg hover:shadow-xl"
+                  >
+                    <FaPlus className="text-sm" />
+                    <span className="font-medium">Tạo thư mục</span>
+                  </button>
+                  <button className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl hover:from-green-600 hover:to-emerald-700 transition-all duration-200 shadow-lg hover:shadow-xl">
+                    <FaUpload className="text-sm" />
+                    <span className="font-medium">Tải ảnh lên</span>
+                  </button>
+                </div>
+              </div>
+            )
+          )}
 
         <div className="flex justify-center mt-6 gap-1">
           <button disabled={currentPage===1} onClick={()=>setCurrentPage(p=>p-1)} className="px-2.5 py-1 rounded bg-gray-200 hover:bg-gray-300 disabled:opacity-50">Trước</button>
