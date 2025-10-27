@@ -721,6 +721,7 @@ const ImageManagement = () => {
                     status={img.Status}
                     createAt={img.CreatedAt}
                     folderPath={img.FolderPath}
+                    uploadBy={img.UploadBy}
                     isSelected={selectedImages.has(img.ImageName)}
                     onSelect={handleImageSelect}
                     onDelete={handleImageDelete}

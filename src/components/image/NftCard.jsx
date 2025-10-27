@@ -20,6 +20,7 @@ const NftCard = ({
   status, 
   createAt, 
   folderPath,
+  uploadBy,
   isSelected, 
   onSelect, 
   onDelete,
@@ -254,15 +255,25 @@ const NftCard = ({
           </div>
 
           {/* Info Row */}
-          <div className="flex items-center justify-between text-sm text-gray-600">
-            <div className="flex items-center space-x-1">
-              <MdStorage className="text-gray-400" />
-              <span className="font-medium">{displaySize}</span>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-sm text-gray-600">
+              <div className="flex items-center space-x-1">
+                <MdStorage className="text-gray-400" />
+                <span className="font-medium">{displaySize}</span>
+              </div>
+              <div className="flex items-center space-x-1">
+                <MdCalendarToday className="text-gray-400" />
+                <span className="font-medium">{displayDate}</span>
+              </div>
             </div>
-            <div className="flex items-center space-x-1">
-              <MdCalendarToday className="text-gray-400" />
-              <span className="font-medium">{displayDate}</span>
-            </div>
+            
+            {/* Upload By */}
+            {uploadBy && (
+              <div className="flex items-center space-x-1 text-xs text-gray-500">
+                <span className="font-medium">Tải lên bởi:</span>
+                <span className="text-blue-600 font-semibold">{uploadBy}</span>
+              </div>
+            )}
           </div>
 
           {/* Action Buttons */}
@@ -313,6 +324,7 @@ const NftCard = ({
         status={status}
         createAt={createAt}
         folderPath={folderPath}
+        uploadBy={uploadBy}
         onClose={() => setShowModal(false)}
         onAnalyze={onAnalyze}
         onDelete={onDelete}

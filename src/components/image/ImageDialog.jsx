@@ -181,7 +181,7 @@ const emptyForm = {
   },
 };
 
-const ImageDialog = ({ open, title, image, size, status, createAt, folderPath, onClose, onAnalyze, onDelete, onRefresh }) => {
+const ImageDialog = ({ open, title, image, size, status, createAt, folderPath, uploadBy, onClose, onAnalyze, onDelete, onRefresh }) => {
   const [formData, setFormData] = useState(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -368,6 +368,13 @@ const ImageDialog = ({ open, title, image, size, status, createAt, folderPath, o
                       <span className="text-sm text-gray-800 font-medium">{size} MB</span>
                     </div>
                   </div>
+                  {/* Upload By */}
+                  {uploadBy && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-gray-600">Tải lên bởi:</span>
+                      <span className="text-sm text-blue-600 font-semibold">{uploadBy}</span>
+                    </div>
+                  )}
                   {/* Date */}
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium text-gray-600">Ngày tải lên:</span>
