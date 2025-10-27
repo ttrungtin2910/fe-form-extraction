@@ -74,28 +74,42 @@ const UploadButton = ({ onUploadComplete, folderPath = "" }) => {
             const statuses = await Promise.all(uploadTaskIds.map(id => api.queue.taskStatus(id).catch(()=>null)));
             let allDone = true;
             statuses.forEach((st,idx)=>{
-                if(!st || (st.state!=='SUCCESS' && st.state!=='FAILURE')) allDone=false; else if(st.state==='SUCCESS'){ if(!uploadsInfo.find(u=>u.taskId===uploadTaskIds[idx])) uploadsInfo.push({taskId:uploadTaskIds[idx], ...st.result}); }
+                if(!st || (st.state!=='SUCCESS' && st.state!=='FAILURE')) allDone=false; else if(st.state==='SUCCESS'){ 
+                    if(!uploadsInfo.find(u=>u.taskId===uploadTaskIds[idx])) {
+                        console.log('[UploadButton] Upload task completed:', st.result);
+                        uploadsInfo.push({taskId:uploadTaskIds[idx], ...st.result}); 
+                    }
+                }
             });
             if(allDone) break;
             await new Promise(r=>setTimeout(r,POLLING_CONFIG.UPLOAD_INTERVAL));
         }
+        console.log('[UploadButton] Uploads completed, starting extraction for:', uploadsInfo);
         // Start extraction for successfully uploaded images
-        const toExtract = uploadsInfo.filter(u=>u && u.image_name && u.url);
+        const toExtract = uploadsInfo.filter(u=>u && (u.image_name || u.ImageName) && (u.url || u.URL));
+        console.log('[UploadButton] Filtered images to extract:', toExtract);
         setPhase('extracting');
         setExtractProgress({done:0,total:toExtract.length});
         const extractTasks = await Promise.all(toExtract.map(async meta => {
             try {
-                const createdAt = meta.image_name.split('.')[0];
+                const imageName = meta.image_name || meta.ImageName;
+                const imageUrl = meta.url || meta.URL;
+                const createdAt = imageName.split('.')[0];
+                console.log('[UploadButton] Extracting:', {imageName, imageUrl, folderPath});
                 const queueResp = await api.queue.extract({
-                    ImageName: meta.image_name,
-                    ImagePath: meta.url,
+                    ImageName: imageName,
+                    ImagePath: imageUrl,
                     Status: 'Uploaded',
                     CreatedAt: createdAt,
                     FolderPath: folderPath || '',
                     Size: 0
                 });
-                return {taskId: queueResp.task_id, image: meta.image_name};
-            } catch(e){ return {taskId:null,image:meta.image_name,error:e}; }
+                return {taskId: queueResp.task_id, image: imageName};
+            } catch(e){ 
+                console.error('[UploadButton] Extract error:', e);
+                const imageName = meta.image_name || meta.ImageName;
+                return {taskId:null, image:imageName, error:e}; 
+            }
         }));
         // Poll extraction tasks
         let doneCount=0; attempts=0; const maxAttemptsExtract=POLLING_CONFIG.MAX_EXTRACT_ATTEMPTS; const stateMap=new Map();

@@ -5,7 +5,7 @@ import UploadButton from "components/button/UploadButton";
 import { FiRefreshCw, FiChevronUp, FiChevronDown } from "react-icons/fi";
 import { MdCheckBox, MdCheckBoxOutlineBlank } from "react-icons/md";
 import PieChart from "components/charts/PieChart";
-import { FaSpinner, FaTrash, FaPlayCircle } from "react-icons/fa";
+import { FaSpinner } from "react-icons/fa";
 import { useImageManagement } from "contexts/ImageManagementContext";
 import { useToast, useConfirm } from "components/common/ToastProvider";
 import { translateStatus } from "utils/statusTranslator";
@@ -88,6 +88,7 @@ const Dashboard = () => {
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalImages, setTotalImages] = useState(0); // Total count from API
   const itemsPerPage = 10;
 
   // State for non-blocking analysis progress
@@ -114,13 +115,16 @@ const Dashboard = () => {
     setLoading(true);
     setError(null);
     try {
-      const resp = await api.images.getAll({page:1,limit:100});
+      // Fetch root images only (folderPath = "" for root)
+      const resp = await api.images.getAll({page:currentPage,limit:itemsPerPage, folderPath:""});
       const imagesList = resp.data || [];
+      const total = resp.total || 0;
       setImages(imagesList);
-      setLoading(false); // ✅ Stop loading immediately after getting images
+      setTotalImages(total);
+      setLoading(false);
       
-      // ✅ OPTIMIZED: Fetch extracted data in background, incrementally for current page only
-      // This will be handled by fetchExtractedDataForPage when page changes
+      // Fetch extracted data for current page
+      fetchExtractedDataForPage(imagesList);
     } catch (err) {
       setError("Không thể tải hình ảnh");
       setLoading(false);
@@ -159,9 +163,10 @@ const Dashboard = () => {
 
   useEffect(() => {
     fetchImages();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage]);
 
-  // ✅ Fetch extracted data for current page when page changes or sorts
+  // ✅ Fetch extracted data for current page when images change
   useEffect(() => {
     if (images.length > 0 && !loading) {
       // Calculate paginated images here to avoid dependency issues
@@ -187,23 +192,27 @@ const Dashboard = () => {
         fetchExtractedDataForPage(paginated);
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage, images, sortBy, sortDir]);
 
   // Sync selected with context
   useEffect(() => {
     updateSelectedImages(new Set(selected));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected]);
 
   // Register sidebar handlers
   useEffect(() => {
     setAnalyzeHandler(handleAnalyzeSelected);
     setDeleteHandler(handleDeleteSelected);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   });
 
   useEffect(() => {
     return () => {
       updateSelectedImages(new Set());
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleSelectAll = () => {
@@ -265,16 +274,19 @@ const Dashboard = () => {
     return 0;
   });
 
-  // Pagination logic
-  const totalPages = Math.ceil(sortedImages.length / itemsPerPage);
+  // Pagination logic - use totalImages from API instead of sortedImages.length
+  const totalPages = Math.ceil(totalImages / itemsPerPage);
+  // No need to slice since we already fetch paginated data from API
+  const paginatedImages = sortedImages;
+  
+  // Calculate indices for display (even though we use API pagination)
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const paginatedImages = sortedImages.slice(startIndex, endIndex);
+  const endIndex = startIndex + paginatedImages.length;
 
-  // Reset to page 1 when images change
+  // Reset to page 1 when total changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [images.length]);
+  }, [totalImages]);
 
   // Stats for overview
   const statusStats = getStatusStats(images);
@@ -679,7 +691,7 @@ const Dashboard = () => {
             {totalPages > 1 && (
               <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200">
                 <div className="text-sm text-gray-600">
-                  Hiển thị <span className="font-semibold">{startIndex + 1}</span> đến <span className="font-semibold">{Math.min(endIndex, sortedImages.length)}</span> trong tổng số <span className="font-semibold">{sortedImages.length}</span> kết quả
+                  Hiển thị <span className="font-semibold">{startIndex + 1}</span> đến <span className="font-semibold">{endIndex}</span> trong tổng số <span className="font-semibold">{totalImages}</span> kết quả
                 </div>
                 <div className="flex items-center gap-2">
                   <button

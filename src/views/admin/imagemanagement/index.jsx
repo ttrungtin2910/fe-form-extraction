@@ -53,7 +53,7 @@ const ImageManagement = () => {
     console.log("[ImageManagement] Starting to fetch images");
     setIsRefreshing(true);
     try {
-      const resp = currentFolder ? await api.images.getByFolder(currentFolder,{page:currentPage,limit:itemsPerPage}) : await api.images.getAll({page:currentPage,limit:itemsPerPage});
+      const resp = currentFolder ? await api.images.getByFolder(currentFolder,{page:currentPage,limit:itemsPerPage}) : await api.images.getAll({page:currentPage,limit:itemsPerPage,folderPath:""});
       const data = resp.data;
       // compute immediate child folders first
       const childFoldersLocal = foldersArg.filter(f => {
@@ -64,9 +64,9 @@ const ImageManagement = () => {
       });
       setChildFolders(childFoldersLocal);
 
-      const visibleOnFirst=Math.max(0,itemsPerPage-childFoldersLocal.length);
+      // Only calculate pages for images, folders are always shown on page 1
       const totalImages=resp.total||0;
-      const totalPagesCalc=Math.max(1,Math.ceil((totalImages+visibleOnFirst)/itemsPerPage));
+      const totalPagesCalc=Math.max(1,Math.ceil(totalImages/itemsPerPage));
       setTotalPages(totalPagesCalc);
       
       console.log("[ImageManagement] Raw images data received:", data);
@@ -139,6 +139,63 @@ const ImageManagement = () => {
     setAnalyzeHandler(handleAnalyzeSelected);
     setDeleteHandler(handleDeleteSelected);
   }, [selectedImages, images]);
+
+  // Resume processing tasks after page reload
+  useEffect(() => {
+    const pollProcessingImages = async () => {
+      const processingImages = images.filter(img => img.Status === 'Processing');
+      if (processingImages.length === 0) return;
+
+      console.log(`[ImageManagement] Found ${processingImages.length} processing images, resuming polling`);
+      
+      // Poll all processing images together until all complete
+      const maxAttempts = 180;
+      let attempts = 0;
+      
+      while (attempts < maxAttempts) {
+        attempts++;
+        
+        try {
+          // Fetch current images to check status via API
+          const resp = currentFolder 
+            ? await api.images.getByFolder(currentFolder,{page:currentPage,limit:itemsPerPage}) 
+            : await api.images.getAll({page:currentPage,limit:itemsPerPage,folderPath:""});
+          
+          const updatedImages = resp.data || [];
+          
+          // Check if any processing images have completed
+          const stillProcessing = processingImages.filter(procImg => {
+            const updatedImg = updatedImages.find(i => i.ImageName === procImg.ImageName);
+            return updatedImg && updatedImg.Status === 'Processing';
+          });
+          
+          if (stillProcessing.length === 0) {
+            console.log(`[ImageManagement] All processing images completed`);
+            await handleRefresh(); // Refresh to show updated status
+            return;
+          }
+          
+          if (stillProcessing.length < processingImages.length) {
+            console.log(`[ImageManagement] Some images completed, refreshing...`);
+            await handleRefresh();
+            return;
+          }
+        } catch (e) {
+          console.error(`[ImageManagement] Error polling processing images:`, e);
+        }
+        
+        await new Promise(r => setTimeout(r, 3000)); // Poll every 3 seconds
+      }
+      
+      console.log(`[ImageManagement] Max polling attempts reached, forcing refresh`);
+      await handleRefresh();
+    };
+
+    if (images.length > 0 && !isRefreshing) {
+      pollProcessingImages();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [images.length, isRefreshing]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -684,19 +741,16 @@ const ImageManagement = () => {
                   </div>
                 </div>
                 <h3 className="text-2xl font-bold text-gray-600 mb-3">Thư mục trống</h3>
-                <p className="text-gray-500 text-center max-w-md">Tạo thư mục mới hoặc tải ảnh lên để bắt đầu quản lý</p>
-                <div className="flex gap-3 mt-6">
+                <p className="text-gray-500 text-center max-w-md mb-6">Tạo thư mục mới hoặc tải ảnh lên để bắt đầu quản lý</p>
+                <div className="flex gap-4">
                   <button 
                     onClick={() => setShowNewFolderModal(true)}
-                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 shadow-lg hover:shadow-xl"
+                    className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white rounded-xl font-medium shadow-md hover:shadow-lg transition-all duration-200"
                   >
-                    <FaPlus className="text-sm" />
-                    <span className="font-medium">Tạo thư mục</span>
+                    <FaPlus />
+                    <span>Tạo thư mục</span>
                   </button>
-                  <button className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl hover:from-green-600 hover:to-emerald-700 transition-all duration-200 shadow-lg hover:shadow-xl">
-                    <FaUpload className="text-sm" />
-                    <span className="font-medium">Tải ảnh lên</span>
-                  </button>
+                  <UploadButton onUploadComplete={handleRefresh} folderPath={currentFolder} />
                 </div>
               </div>
             )

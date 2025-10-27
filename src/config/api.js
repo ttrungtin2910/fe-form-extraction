@@ -159,7 +159,13 @@ export const api = {
 
   // Image operations
   images: {
-    getAll: ({page=1,limit=20}={}) => apiCall(`${API_CONFIG.IMAGES.GET_ALL}?page=${page}&limit=${limit}`),
+    getAll: ({page=1,limit=20,folderPath}={}) => {
+      let url = `${API_CONFIG.IMAGES.GET_ALL}?page=${page}&limit=${limit}`;
+      if (folderPath !== undefined && folderPath !== null) {
+        url += `&folderPath=${encodeURIComponent(folderPath)}`;
+      }
+      return apiCall(url);
+    },
     getByFolder: (folderPath,{page=1,limit=20}={}) => apiCall(`${API_CONFIG.IMAGES.GET_ALL}?folderPath=${encodeURIComponent(folderPath)}&page=${page}&limit=${limit}`),
     getFolders: () => apiCall(API_CONFIG.IMAGES.FOLDERS),
     createFolder: (folderPath) => apiCall(API_CONFIG.IMAGES.FOLDERS, {
