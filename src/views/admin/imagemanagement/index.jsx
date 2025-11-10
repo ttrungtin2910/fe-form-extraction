@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import NftCard from "components/image/NftCard";
 import FolderCard from "components/folder/FolderCard";
 import UploadButton from "components/button/UploadButton";
@@ -16,6 +16,7 @@ const ImageManagement = () => {
   const [images, setImages] = useState([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [folders, setFolders] = useState([]);
+  const foldersRef = useRef([]);
   const [currentFolder, setCurrentFolder] = useState("");
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
@@ -30,6 +31,7 @@ const ImageManagement = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(20);
+  const [hasInitialLoad, setHasInitialLoad] = useState(false);
   
   const { 
     selectedImages, 
@@ -49,100 +51,115 @@ const ImageManagement = () => {
   const toast = useToast();
   const confirm = useConfirm();
 
-  const fetchImages = async (foldersArg = folders) => {
-    console.log("[ImageManagement] Starting to fetch images");
-    setIsRefreshing(true);
-    try {
-      const resp = currentFolder ? await api.images.getByFolder(currentFolder,{page:currentPage,limit:itemsPerPage}) : await api.images.getAll({page:currentPage,limit:itemsPerPage,folderPath:""});
-      const data = resp.data;
-      // compute immediate child folders first
-      const childFoldersLocal = foldersArg.filter(f => {
-        if (currentFolder) {
-          return f.startsWith(currentFolder + "/") && f.split("/").length === currentFolder.split("/").length + 1;
-        }
-        return f.split("/").length === 1;
-      });
-      setChildFolders(childFoldersLocal);
+  const fetchImages = useCallback(
+    async (availableFolders) => {
+      setIsRefreshing(true);
+      try {
+        const effectiveFolders = availableFolders ?? foldersRef.current;
+        const apiParams = {
+          page: currentPage,
+          limit: itemsPerPage,
+          sortField,
+          sortOrder,
+        };
 
-      console.log("[ImageManagement] Raw images data received:", data);
-      
-      const validImages = data.filter(
-        (img) => img.ImagePath && img.ImageName && img.Status
-      );
-      console.log("[ImageManagement] Valid images filtered:", validImages.length);
-      
-      // Additional frontend filter to ensure only root images are shown
-      const scopedImages = currentFolder 
-        ? validImages // already filtered by API for specific folder
-        : validImages.filter(img => {
-            const folderPath = img.FolderPath;
-            return !folderPath || folderPath === "" || folderPath.trim() === "";
-          });
-      
-      console.log("[ImageManagement] After filtering:", {
-        total: validImages.length,
-        scoped: scopedImages.length,
-        currentFolder,
-        sampleFolderPaths: validImages.slice(0, 3).map(img => img.FolderPath)
-      });
-      
-      // Use scoped images count for pagination
-      const totalImages = scopedImages.length;
-      const totalPagesCalc = Math.max(1, Math.ceil(totalImages / itemsPerPage));
-      setTotalPages(totalPagesCalc);
-      
-      // Sort images based on sortField and sortOrder
-      const sortedImages = scopedImages.sort((a, b) => {
-        let valueA, valueB;
-        
-        switch (sortField) {
-          case "CreatedAt":
-            valueA = new Date(a.CreatedAt);
-            valueB = new Date(b.CreatedAt);
-            break;
-          case "ImageName":
-            valueA = a.ImageName.toLowerCase();
-            valueB = b.ImageName.toLowerCase();
-            break;
-          case "Status":
-            valueA = a.Status.toLowerCase();
-            valueB = b.Status.toLowerCase();
-            break;
-          default:
-            valueA = a[sortField];
-            valueB = b[sortField];
+        const response = currentFolder
+          ? await api.images.getByFolder(currentFolder, apiParams)
+          : await api.images.getAll({ ...apiParams, folderPath: "" });
+
+        const data = response?.data ?? [];
+        const totalItems = response?.total ?? data.length;
+
+        const childFoldersLocal = effectiveFolders.filter((folder) => {
+          if (currentFolder) {
+            return (
+              folder.startsWith(`${currentFolder}/`) &&
+              folder.split("/").length === currentFolder.split("/").length + 1
+            );
+          }
+          return folder.split("/").length === 1;
+        });
+
+        setChildFolders(childFoldersLocal);
+        setImages(data);
+        updateImages(data);
+
+        const totalPagesCalc = Math.max(
+          1,
+          Math.ceil(totalItems / itemsPerPage)
+        );
+        setTotalPages(totalPagesCalc);
+        if (currentPage > totalPagesCalc) {
+          setCurrentPage(totalPagesCalc);
         }
-        
-        if (sortOrder === "asc") {
-          return valueA > valueB ? 1 : valueA < valueB ? -1 : 0;
-        } else {
-          return valueA < valueB ? 1 : valueA > valueB ? -1 : 0;
-        }
-      });
+      } catch (error) {
+        console.error("[ImageManagement] Error fetching images:", error);
+        toast.error("Không thể tải danh sách hình ảnh");
+      } finally {
+        setIsRefreshing(false);
+      }
+    },
+    [
+      currentFolder,
+      currentPage,
+      itemsPerPage,
+      sortField,
+      sortOrder,
+      updateImages,
+      toast,
+    ]
+  );
+
+  // Lazy load folders - only load when needed
+  const loadFolders = useCallback(async (parent = null) => {
+    try {
+      const folderData = await api.images.getFolders(parent, true); // includeCount = true
+      const fetchedFolders = folderData.folders || [];
       
-      console.log("[ImageManagement] Images sorted and set:", sortedImages.length);
-      setImages(sortedImages);
-      updateImages(sortedImages);
+      if (parent === null) {
+        // Loading all folders for navigation
+        setFolders(fetchedFolders.map(f => f.FolderPath));
+      }
+      
+      return fetchedFolders;
     } catch (error) {
-      console.error("[ImageManagement] Error fetching images:", error);
-    } finally {
-      setIsRefreshing(false);
+      console.error("[ImageManagement] Failed to fetch folders", error);
+      toast.error("Không thể tải danh sách thư mục");
+      return [];
     }
-  };
+  }, [toast]);
 
   useEffect(() => {
+    let isMounted = true;
     const init = async () => {
       try {
-        const folderData = await api.images.getFolders();
-        const fetchedFolders = folderData.folders || [];
+        // Only load root-level folders initially
+        const folderData = await api.images.getFolders("", false); // parent="", no count
+        if (!isMounted) return;
+        const fetchedFolders = (folderData.folders || []).map(f => f.FolderPath);
         setFolders(fetchedFolders);
-        await fetchImages(fetchedFolders);
-      } catch (e) {
-        console.error("[ImageManagement] Failed to fetch folders", e);
+        if (isMounted) {
+          setHasInitialLoad(true);
+        }
+      } catch (error) {
+        console.error("[ImageManagement] Failed to fetch folders", error);
+        toast.error("Không thể tải danh sách thư mục");
       }
     };
     init();
-  }, [sortField, sortOrder, currentFolder, currentPage, itemsPerPage]);
+    return () => {
+      isMounted = false;
+    };
+  }, [toast]);
+
+  useEffect(() => {
+    foldersRef.current = folders;
+  }, [folders]);
+
+  useEffect(() => {
+    if (!hasInitialLoad) return;
+    fetchImages();
+  }, [fetchImages, hasInitialLoad]);
 
   // Set handlers for sidebar buttons
   useEffect(() => {
@@ -156,7 +173,6 @@ const ImageManagement = () => {
       const processingImages = images.filter(img => img.Status === 'Processing');
       if (processingImages.length === 0) return;
 
-      console.log(`[ImageManagement] Found ${processingImages.length} processing images, resuming polling`);
       
       // Poll all processing images together until all complete
       const maxAttempts = 180;
@@ -167,9 +183,20 @@ const ImageManagement = () => {
         
         try {
           // Fetch current images to check status via API
-          const resp = currentFolder 
-            ? await api.images.getByFolder(currentFolder,{page:currentPage,limit:itemsPerPage}) 
-            : await api.images.getAll({page:currentPage,limit:itemsPerPage,folderPath:""});
+          const resp = currentFolder
+            ? await api.images.getByFolder(currentFolder, {
+                page: currentPage,
+                limit: itemsPerPage,
+                sortField,
+                sortOrder,
+              })
+            : await api.images.getAll({
+                page: currentPage,
+                limit: itemsPerPage,
+                folderPath: "",
+                sortField,
+                sortOrder,
+              });
           
           const updatedImages = resp.data || [];
           
@@ -180,13 +207,11 @@ const ImageManagement = () => {
           });
           
           if (stillProcessing.length === 0) {
-            console.log(`[ImageManagement] All processing images completed`);
             await handleRefresh(); // Refresh to show updated status
             return;
           }
           
           if (stillProcessing.length < processingImages.length) {
-            console.log(`[ImageManagement] Some images completed, refreshing...`);
             await handleRefresh();
             return;
           }
@@ -197,7 +222,6 @@ const ImageManagement = () => {
         await new Promise(r => setTimeout(r, 3000)); // Poll every 3 seconds
       }
       
-      console.log(`[ImageManagement] Max polling attempts reached, forcing refresh`);
       await handleRefresh();
     };
 
@@ -224,10 +248,12 @@ const ImageManagement = () => {
   const handleRefresh = async () => {
     try {
       const folderData = await api.images.getFolders();
-      setFolders(folderData.folders || []);
-      await fetchImages(folderData.folders || []);
+      const fetchedFolders = folderData.folders || [];
+      setFolders(fetchedFolders);
+      await fetchImages(fetchedFolders);
     } catch (e) {
       console.error("[ImageManagement] Failed to refresh folders", e);
+      toast.error("Không thể làm mới danh sách hình ảnh");
     }
   };
 
@@ -258,47 +284,38 @@ const ImageManagement = () => {
   };
 
   const handleImageSelect = (imageName, isSelected) => {
-    console.log(`[ImageManagement] Image selection changed: ${imageName} -> ${isSelected}`);
     const newSet = new Set(selectedImages);
     if (isSelected) {
       newSet.add(imageName);
     } else {
       newSet.delete(imageName);
     }
-    console.log(`[ImageManagement] Selected images count: ${newSet.size}`);
     updateSelectedImages(newSet);
   };
 
   const handleImageDelete = (imageName) => {
-    console.log(`[ImageManagement] Handling delete for image: ${imageName}`);
     
     // Remove from selected images
     const newSet = new Set(selectedImages);
     newSet.delete(imageName);
-    console.log(`[ImageManagement] Removed ${imageName} from selection`);
     updateSelectedImages(newSet);
     
     // Refresh the image list
-    console.log("[ImageManagement] Refreshing image list after deletion");
     fetchImages();
   };
 
   const handleImageAnalyze = (result) => {
-    console.log("[ImageManagement] Analysis result received:", result);
     // You can add additional handling here if needed
   };
 
   const handleSelectAll = () => {
-    console.log("[ImageManagement] Select All clicked");
     if (selectedImages.size === images.length) {
       // If all are selected, deselect all
       updateSelectedImages(new Set());
-      console.log("[ImageManagement] Deselected all images");
     } else {
       // Select all images
       const allImageNames = images.map(img => img.ImageName);
       updateSelectedImages(new Set(allImageNames));
-      console.log(`[ImageManagement] Selected all ${allImageNames.length} images`);
     }
   };
 
@@ -308,7 +325,6 @@ const ImageManagement = () => {
       return;
     }
 
-    console.log(`[ImageManagement] Starting parallel analysis for ${selectedImages.size} selected images`);
     setAnalyzingState(true);
 
     try {
@@ -412,7 +428,6 @@ const ImageManagement = () => {
     const confirmDelete = await confirm({title:"Xóa hình ảnh",message:`Xóa ${selectedImages.size} hình ảnh?`,type:"danger",confirmText:"Xóa"});
     if(!confirmDelete) return;
 
-    console.log(`[ImageManagement] Starting bulk delete for ${selectedImages.size} selected images`);
     setDeletingState(true);
     
     try {
@@ -422,9 +437,7 @@ const ImageManagement = () => {
       
       for (const imageName of selectedImageNames) {
         try {
-          console.log(`[ImageManagement] Deleting image: ${imageName}`);
           await api.images.delete(imageName);
-          console.log(`[ImageManagement] Successfully deleted: ${imageName}`);
           successCount++;
         } catch (error) {
           console.error(`[ImageManagement] Error deleting image: ${imageName}`, error);

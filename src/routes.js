@@ -1,7 +1,7 @@
 import React from "react";
 
 // Admin Imports
-import Dashboard from "views/admin/dashboard";
+import Dashboard from "views/admin/default"; // Merged dashboard with statistics + export + all folders
 import ImageManagement from "views/admin/imagemanagement";
 import Synchronization from "views/admin/Synchronization";
 

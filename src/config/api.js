@@ -159,15 +159,51 @@ export const api = {
 
   // Image operations
   images: {
-    getAll: ({page=1,limit=20,folderPath}={}) => {
-      let url = `${API_CONFIG.IMAGES.GET_ALL}?page=${page}&limit=${limit}`;
+    getAll: ({ page = 1, limit = 20, folderPath, sortField, sortOrder } = {}) => {
+      const params = new URLSearchParams({
+        page: String(page),
+        limit: String(limit),
+      });
+
       if (folderPath !== undefined && folderPath !== null) {
-        url += `&folderPath=${encodeURIComponent(folderPath)}`;
+        params.append("folderPath", folderPath);
       }
-      return apiCall(url);
+      if (sortField) {
+        params.append("sortField", sortField);
+      }
+      if (sortOrder) {
+        params.append("sortOrder", sortOrder);
+      }
+
+      return apiCall(`${API_CONFIG.IMAGES.GET_ALL}?${params.toString()}`);
     },
-    getByFolder: (folderPath,{page=1,limit=20}={}) => apiCall(`${API_CONFIG.IMAGES.GET_ALL}?folderPath=${encodeURIComponent(folderPath)}&page=${page}&limit=${limit}`),
-    getFolders: () => apiCall(API_CONFIG.IMAGES.FOLDERS),
+    getByFolder: (folderPath, { page = 1, limit = 20, sortField, sortOrder } = {}) => {
+      const params = new URLSearchParams({
+        folderPath,
+        page: String(page),
+        limit: String(limit),
+      });
+
+      if (sortField) {
+        params.append("sortField", sortField);
+      }
+      if (sortOrder) {
+        params.append("sortOrder", sortOrder);
+      }
+
+      return apiCall(`${API_CONFIG.IMAGES.GET_ALL}?${params.toString()}`);
+    },
+    getFolders: (parent = null, includeCount = false) => {
+      const params = new URLSearchParams();
+      if (parent !== null) {
+        params.append('parent', parent);
+      }
+      if (includeCount) {
+        params.append('includeCount', 'true');
+      }
+      const queryString = params.toString();
+      return apiCall(`${API_CONFIG.IMAGES.FOLDERS}${queryString ? '?' + queryString : ''}`);
+    },
     createFolder: (folderPath) => apiCall(API_CONFIG.IMAGES.FOLDERS, {
       method: 'POST',
       body: JSON.stringify({ folderPath })
@@ -213,6 +249,20 @@ export const api = {
     upload: (formData) => apiCall(API_CONFIG.QUEUE.UPLOAD, { method: 'POST', body: formData }),
     extract: (data) => apiCall(API_CONFIG.QUEUE.EXTRACT, { method: 'POST', body: JSON.stringify(data) }),
     taskStatus: (id) => apiCall(API_CONFIG.QUEUE.TASK_STATUS(id)),
+  },
+  
+  // Statistics operations
+  statistics: {
+    getDashboard: ({ forceRefresh = false } = {}) => {
+      const params = new URLSearchParams();
+      if (forceRefresh) {
+        params.append("forceRefresh", "true");
+      }
+      const suffix = params.toString();
+      const endpoint = suffix ? `/statistics/dashboard?${suffix}` : "/statistics/dashboard";
+      return apiCall(endpoint);
+    },
+    exportAll: () => apiCall('/statistics/export-all'),
   },
 };
 

@@ -115,8 +115,8 @@ const Dashboard = () => {
     setLoading(true);
     setError(null);
     try {
-      // Fetch root images only (folderPath = "" for root)
-      const resp = await api.images.getAll({page:currentPage,limit:itemsPerPage, folderPath:""});
+      // Fetch images from ALL folders (remove folderPath filter)
+      const resp = await api.images.getAll({page:currentPage,limit:itemsPerPage});
       const imagesList = resp.data || [];
       const total = resp.total || 0;
       setImages(imagesList);

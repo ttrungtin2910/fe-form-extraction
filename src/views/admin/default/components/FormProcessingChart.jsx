@@ -1,23 +1,27 @@
-import React from "react";
+import React, { useMemo } from "react";
 import Card from "components/card";
 import LineChart from "components/charts/LineChart";
 import { MdTrendingUp, MdTrendingDown } from "react-icons/md";
 
-const FormProcessingChart = () => {
-  const chartData = [
-    {
-      name: "Uploads",
-      data: [45, 52, 38, 67, 58, 72, 85, 78, 92, 88, 95, 102],
-    },
-    {
-      name: "Processed",
-      data: [42, 48, 35, 62, 54, 68, 80, 72, 87, 82, 90, 96],
-    },
-    {
-      name: "Failed",
-      data: [3, 4, 3, 5, 4, 4, 5, 6, 5, 6, 5, 6],
-    },
-  ];
+const FormProcessingChart = ({ data, loading }) => {
+  // Process date data for chart
+  const chartData = useMemo(() => {
+    if (!data || !data.byDate) {
+      return [
+        { name: "Total", data: [] },
+      ];
+    }
+
+    // Get last 12 data points or all if less
+    const dateData = data.byDate.slice(-12);
+    
+    return [
+      {
+        name: "Images",
+        data: dateData.map(item => item.count),
+      },
+    ];
+  }, [data]);
 
   const chartOptions = {
     chart: {
@@ -51,10 +55,14 @@ const FormProcessingChart = () => {
       },
     },
     xaxis: {
-      categories: [
-        "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
-      ],
+      categories: data && data.byDate ? data.byDate.slice(-12).map(item => {
+        // Format date YYYYMMDD to readable format
+        const dateStr = item.date;
+        if (dateStr && dateStr.length === 8) {
+          return `${dateStr.slice(4,6)}/${dateStr.slice(6,8)}`;
+        }
+        return dateStr;
+      }) : [],
       labels: {
         style: {
           colors: "#A3AED0",
@@ -111,29 +119,44 @@ const FormProcessingChart = () => {
     },
   };
 
-  const stats = [
-    {
-      label: "Total Uploads",
-      value: "1,247",
-      change: "+12.5%",
-      isPositive: true,
-      color: "#4318FF",
-    },
-    {
-      label: "Success Rate",
-      value: "87.3%",
-      change: "+2.1%",
-      isPositive: true,
-      color: "#6AD2FF",
-    },
-    {
-      label: "Avg Processing Time",
-      value: "2.3s",
-      change: "-0.5s",
-      isPositive: true,
-      color: "#FF6B6B",
-    },
-  ];
+  const stats = useMemo(() => {
+    if (!data || !data.summary) {
+      return [
+        { label: "Total Images", value: "0", change: "-", isPositive: true, color: "#4318FF" },
+        { label: "Success Rate", value: "0%", change: "-", isPositive: true, color: "#6AD2FF" },
+        { label: "Total Size", value: "0 MB", change: "-", isPositive: true, color: "#FF6B6B" },
+      ];
+    }
+
+    const summary = data.summary;
+    const successRate = summary.totalImages > 0 
+      ? ((summary.completed / summary.totalImages) * 100).toFixed(1) 
+      : 0;
+
+    return [
+      {
+        label: "Total Images",
+        value: summary.totalImages.toLocaleString(),
+        change: `${summary.completed} completed`,
+        isPositive: true,
+        color: "#4318FF",
+      },
+      {
+        label: "Success Rate",
+        value: `${successRate}%`,
+        change: `${summary.failed} failed`,
+        isPositive: summary.failed === 0,
+        color: "#6AD2FF",
+      },
+      {
+        label: "Total Size",
+        value: `${summary.totalSize.toFixed(1)} MB`,
+        change: `Avg: ${summary.avgSize.toFixed(2)} MB`,
+        isPositive: true,
+        color: "#FF6B6B",
+      },
+    ];
+  }, [data]);
 
   return (
     <Card extra="p-6 h-full">
@@ -143,7 +166,7 @@ const FormProcessingChart = () => {
             Form Processing Overview
           </h3>
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            Monthly trends for form uploads, processing, and failures
+            {loading ? "Loading..." : "Trends for all images across all folders"}
           </p>
         </div>
         
