@@ -1,5 +1,6 @@
 import React from "react";
-import { MdCheckBox, MdCheckBoxOutlineBlank } from "react-icons/md";
+import { CheckIcon as MdCheckBox } from "@heroicons/react/24/solid";
+import { Square2StackIcon as MdCheckBoxOutlineBlank } from "@heroicons/react/24/outline";
 
 const DisplayStudentForm = ({ data, isEditing = false, onDataChange }) => {
   const getSafe = (value) => (value !== undefined && value !== null ? value : "");
@@ -53,9 +54,9 @@ const DisplayStudentForm = ({ data, isEditing = false, onDataChange }) => {
         />
       ) : (
         checked ? (
-          <MdCheckBox className="text-blue-600 text-lg" />
+          <MdCheckBox className="h-5 w-5 text-blue-600" />
         ) : (
-          <MdCheckBoxOutlineBlank className="text-gray-400 text-lg" />
+          <MdCheckBoxOutlineBlank className="h-5 w-5 text-gray-400" />
         )
       )}
       <span>{label}</span>

@@ -154,9 +154,11 @@ export const exportDashboardStats = (stats, filename = 'dashboard_statistics.xls
   }
 };
 
-export default {
+const excelExport = {
   exportToExcel,
   exportImagesToExcel,
   exportMultipleSheetsToExcel,
   exportDashboardStats,
 };
+
+export default excelExport;

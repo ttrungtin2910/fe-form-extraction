@@ -1,69 +1,83 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Card from "components/image";
 import ImageDialog from "components/image/ImageDialog";
 
-import { FiMoreHorizontal, FiEye } from "react-icons/fi";
-import { FaPlayCircle, FaSpinner, FaTrash } from "react-icons/fa";
-import { MdCheckBox, MdCheckBoxOutlineBlank } from "react-icons/md";
-import { MdStorage, MdCalendarToday, MdCheckCircle, MdPending, MdInfo, MdError } from "react-icons/md";
+import {
+  EyeIcon as FiEye,
+  PlayIcon as FaPlayCircle,
+  TrashIcon as FaTrash,
+  ServerIcon as MdStorage,
+  CalendarIcon as MdCalendarToday,
+  CheckCircleIcon as MdCheckCircle,
+  ClockIcon as MdPending,
+  InformationCircleIcon as MdInfo,
+  ExclamationCircleIcon as MdError,
+} from "@heroicons/react/24/solid";
 import { api } from "config/api";
-import { useImageManagement } from "contexts/ImageManagementContext";
 import { POLLING_CONFIG } from "../../config/polling";
 import { useToast, useConfirm } from "components/common/ToastProvider";
 import { translateStatus } from "utils/statusTranslator";
+import Button from "components/button/Button";
 
-const NftCard = ({ 
-  title, 
-  size, 
-  image, 
-  extra, 
-  status, 
-  createAt, 
+const NftCard = ({
+  title,
+  size,
+  image,
+  extra,
+  status,
+  createAt,
   folderPath,
   uploadBy,
-  isSelected, 
-  onSelect, 
+  isSelected,
+  onSelect,
   onDelete,
   onAnalyze,
-  onRefresh 
+  onRefresh,
 }) => {
-  const [heart, setHeart] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
-  
+  const [imageLoading, setImageLoading] = useState(true);
+  const [imageError, setImageError] = useState(false);
+
   // Local + persisted processing state
   const isAnalyzing = loading;
-  const isProcessing = isAnalyzing || status === 'Processing';
+  const isProcessing = isAnalyzing || status === "Processing";
 
   const toast = useToast();
   const confirmModal = useConfirm();
 
-  const displaySize = typeof size === 'number' ? `${size.toFixed(2)} MB` : size;
+  const displaySize = typeof size === "number" ? `${size.toFixed(2)} MB` : size;
   const parseDate = (str) => {
     if (!str) return "";
     if (str.includes("T")) return new Date(str);
     // Expect format YYYYMMDD_HHMMSS
     const [datePart, timePart] = str.split("_");
     if (datePart && timePart) {
-      const year = datePart.slice(0,4);
-      const month = datePart.slice(4,6);
-      const day = datePart.slice(6,8);
-      const hour = timePart.slice(0,2);
-      const minute = timePart.slice(2,4);
-      const second = timePart.slice(4,6);
+      const year = datePart.slice(0, 4);
+      const month = datePart.slice(4, 6);
+      const day = datePart.slice(6, 8);
+      const hour = timePart.slice(0, 2);
+      const minute = timePart.slice(2, 4);
+      const second = timePart.slice(4, 6);
       return new Date(`${year}-${month}-${day}T${hour}:${minute}:${second}Z`);
     }
     return new Date(str);
   };
-  const displayDate = (()=>{try{return parseDate(createAt).toLocaleString();}catch(e){return createAt;}})();
+  const displayDate = (() => {
+    try {
+      return parseDate(createAt).toLocaleString();
+    } catch (e) {
+      return createAt;
+    }
+  })();
 
   const handleAnalyzeClick = async () => {
     console.log(`[NftCard] Starting analysis for image: ${title}`);
     setLoading(true);
-    
-    const sizeVal = typeof size === 'number' ? size : 0;
-    
+
+    const sizeVal = typeof size === "number" ? size : 0;
+
     try {
       const queueResp = await api.queue.extract({
         ImageName: title,
@@ -71,23 +85,24 @@ const NftCard = ({
         ImagePath: image,
         Status: status,
         CreatedAt: createAt,
-        FolderPath: folderPath || ""
+        FolderPath: folderPath || "",
       });
       const taskId = queueResp.task_id;
       // poll for completion
       let attempts = 0;
       const poll = async () => {
         const data = await api.queue.taskStatus(taskId);
-        if (data.state === 'SUCCESS') {
+        if (data.state === "SUCCESS") {
           if (onAnalyze) onAnalyze(data.result);
           if (onRefresh) onRefresh();
           setLoading(false);
           return;
-        } else if (data.state === 'FAILURE') {
-          console.error('Task failed', data.error);
+        } else if (data.state === "FAILURE") {
+          console.error("Task failed", data.error);
           setLoading(false);
           return;
-        } else if (attempts < 120) { // up to ~2 minutes (1s interval)
+        } else if (attempts < 120) {
+          // up to ~2 minutes (1s interval)
           attempts++;
           setTimeout(poll, POLLING_CONFIG.TASK_STATUS_INTERVAL);
         } else {
@@ -98,19 +113,24 @@ const NftCard = ({
     } catch (error) {
       console.error(`[NftCard] Error during analysis for: ${title}`, error);
       setLoading(false);
-    } 
+    }
   };
 
   const handleDeleteClick = async () => {
-    const ok = await confirmModal({title:"Xóa hình ảnh",message:`Xóa \"${title}\"?`,type:"danger",confirmText:"Xóa"});
-    if(!ok) return;
+    const ok = await confirmModal({
+      title: "Xóa hình ảnh",
+      message: `Xóa "${title}"?`,
+      type: "danger",
+      confirmText: "Xóa",
+    });
+    if (!ok) return;
 
     console.log(`[NftCard] Starting deletion for image: ${title}`);
     setDeleteLoading(true);
     try {
-      const result = await api.images.delete(title);
+      await api.images.delete(title);
       toast.success("Đã xóa hình ảnh");
-      
+
       // Call the parent callback if provided
       if (onDelete) {
         console.log(`[NftCard] Calling onDelete callback for: ${title}`);
@@ -138,97 +158,115 @@ const NftCard = ({
   const getStatusIcon = (status) => {
     switch (status) {
       case "Completed":
-        return <MdCheckCircle className="text-green-500" />;
+        return <MdCheckCircle className="h-5 w-5 text-green-400" />;
       case "Uploaded":
-        return <MdPending className="text-red-500" />;
+        return <MdPending className="h-5 w-5 text-red-400" />;
       case "Processing":
-        return <MdPending className="text-orange-500 animate-pulse" />;
+        return <MdPending className="h-5 w-5 animate-pulse text-orange-400" />;
       case "Verify":
-        return <MdInfo className="text-purple-500" />;
+        return <MdInfo className="h-5 w-5 text-purple-400" />;
       case "Synced":
-        return <MdInfo className="text-orange-500" />;
+        return <MdInfo className="h-5 w-5 text-orange-400" />;
       default:
-        return <MdError className="text-gray-500" />;
-    }
-  };
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "Completed":
-        return "bg-green-100 text-green-800 border-green-200";
-      case "Uploaded":
-        return "bg-red-100 text-red-800 border-red-200";
-      case "Processing":
-        return "bg-orange-100 text-orange-800 border-orange-200";
-      case "Verify":
-        return "bg-purple-100 text-purple-800 border-purple-200";
-      case "Synced":
-        return "bg-orange-100 text-orange-800 border-orange-200";
-      default:
-        return "bg-gray-100 text-gray-800 border-gray-200";
+        return <MdError className="h-5 w-5 text-white/50" />;
     }
   };
 
   return (
     <Card
-      extra={`flex flex-col w-full h-full bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100 overflow-hidden group ${extra}`}
+      extra={`flex flex-col w-full h-full rounded-3xl border border-white/10 bg-white/5 shadow-2xl backdrop-blur-xl hover:bg-white/10 hover:border-white/20 transition-all duration-300 overflow-hidden group ${extra}`}
     >
       <div className="h-full w-full">
         {/* Image Container */}
-        <div className="relative w-full h-48 overflow-hidden bg-gray-100">
+        <div className="relative h-48 w-full overflow-hidden rounded-t-3xl bg-white/10">
+          {imageLoading && !imageError && (
+            <div className="absolute inset-0 flex animate-pulse items-center justify-center bg-white/10">
+              <div className="h-12 w-12 animate-spin rounded-full border-4 border-white/20 border-t-white"></div>
+            </div>
+          )}
+          {imageError && (
+            <div className="absolute inset-0 flex items-center justify-center bg-white/10">
+              <div className="text-center text-white/50">
+                <svg
+                  className="mx-auto mb-2 h-12 w-12"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                  />
+                </svg>
+                <p className="text-xs text-white/50">Không thể tải ảnh</p>
+              </div>
+            </div>
+          )}
           <img
             src={image}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 cursor-pointer"
+            className={`h-full w-full cursor-pointer object-cover transition-transform duration-300 group-hover:scale-105 ${
+              imageLoading ? "opacity-0" : "opacity-100"
+            }`}
             alt={title}
             onClick={handleImageClick}
+            onLoad={() => {
+              setImageLoading(false);
+              setImageError(false);
+            }}
+            onError={() => {
+              setImageLoading(false);
+              setImageError(true);
+            }}
           />
-          
+
           {/* Overlay on hover */}
-          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-300 flex items-center justify-center pointer-events-none">
-            <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-              <div className="bg-white bg-opacity-90 rounded-full p-3">
-                <FiEye className="text-gray-700 text-xl" />
+          <div className="bg-black/0 group-hover:bg-black/20 pointer-events-none absolute inset-0 flex items-center justify-center transition-all duration-300">
+            <div className="opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+              <div className="rounded-full border border-white/30 bg-gray-900/80 p-3 shadow-lg backdrop-blur-sm">
+                <FiEye className="h-5 w-5 text-white" />
               </div>
             </div>
           </div>
-          
+
           {/* Selection Checkbox */}
           <button
             onClick={handleSelect}
-            className={`absolute top-3 left-3 flex items-center justify-center rounded-full p-2 shadow-lg transition-all duration-300 transform hover:scale-110 z-10 ${
-              isSelected 
-                ? "bg-red-500 text-white shadow-red-200" 
-                : "bg-white bg-opacity-90 backdrop-blur-sm text-gray-400 hover:bg-white hover:text-red-500"
+            className={`absolute left-3 top-3 z-10 flex transform items-center justify-center rounded-full border p-2 shadow-xl backdrop-blur-sm transition-all duration-300 hover:scale-110 ${
+              isSelected
+                ? "border-red-400/50 bg-red-500 text-white shadow-red-500/50"
+                : "border-white/30 bg-gray-900/80 text-white backdrop-blur-sm hover:border-white/40 hover:bg-gray-800/90"
             }`}
           >
             <div className="relative">
               {isSelected ? (
                 <div className="flex items-center justify-center">
-                  <svg 
-                    className="w-5 h-5 animate-pulse" 
-                    fill="currentColor" 
+                  <svg
+                    className="h-5 w-5 animate-pulse"
+                    fill="currentColor"
                     viewBox="0 0 20 20"
                   >
-                    <path 
-                      fillRule="evenodd" 
-                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" 
-                      clipRule="evenodd" 
+                    <path
+                      fillRule="evenodd"
+                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                      clipRule="evenodd"
                     />
                   </svg>
                 </div>
               ) : (
                 <div className="flex items-center justify-center">
-                  <svg 
-                    className="w-5 h-5" 
-                    fill="none" 
-                    stroke="currentColor" 
+                  <svg
+                    className="h-5 w-5"
+                    fill="none"
+                    stroke="currentColor"
                     viewBox="0 0 24 24"
                   >
-                    <path 
-                      strokeLinecap="round" 
-                      strokeLinejoin="round" 
-                      strokeWidth="2" 
-                      d="M5 13l4 4L19 7" 
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M5 13l4 4L19 7"
                     />
                   </svg>
                 </div>
@@ -237,41 +275,48 @@ const NftCard = ({
           </button>
 
           {/* Status Badge */}
-          <div className="absolute top-3 right-3 z-10">
-            <div className={`flex items-center space-x-1 px-3 py-1 rounded-full border ${getStatusColor(status)} shadow-sm`}>
+          <div className="absolute right-3 top-3 z-10">
+            <div
+              className={`flex items-center space-x-1 rounded-full border border-white/30 bg-gray-900/80 px-3 py-1 shadow-lg backdrop-blur-sm`}
+            >
               {getStatusIcon(status)}
-              <span className="text-xs font-medium">{translateStatus(status)}</span>
+              <span className="text-xs font-medium text-white">
+                {translateStatus(status)}
+              </span>
             </div>
           </div>
         </div>
 
         {/* Content Section */}
-        <div className="p-4 space-y-3">
+        <div className="space-y-3 p-4">
           {/* Title */}
           <div className="mb-2">
-            <h3 className="text-lg font-semibold text-gray-800 truncate" title={title}>
+            <h3
+              className="truncate text-lg font-semibold text-white"
+              title={title}
+            >
               {title}
             </h3>
           </div>
 
           {/* Info Row */}
           <div className="space-y-2">
-            <div className="flex items-center justify-between text-sm text-gray-600">
+            <div className="flex items-center justify-between text-sm text-white/70">
               <div className="flex items-center space-x-1">
-                <MdStorage className="text-gray-400" />
+                <MdStorage className="h-4 w-4 text-white/50" />
                 <span className="font-medium">{displaySize}</span>
               </div>
               <div className="flex items-center space-x-1">
-                <MdCalendarToday className="text-gray-400" />
+                <MdCalendarToday className="h-4 w-4 text-white/50" />
                 <span className="font-medium">{displayDate}</span>
               </div>
             </div>
-            
+
             {/* Upload By */}
             {uploadBy && (
-              <div className="flex items-center space-x-1 text-xs text-gray-500">
+              <div className="flex items-center space-x-1 text-xs text-white/60">
                 <span className="font-medium">Tải lên bởi:</span>
-                <span className="text-blue-600 font-semibold">{uploadBy}</span>
+                <span className="font-semibold text-blue-300">{uploadBy}</span>
               </div>
             )}
           </div>
@@ -279,39 +324,28 @@ const NftCard = ({
           {/* Action Buttons */}
           <div className="flex items-center space-x-2 pt-2">
             {/* Analyze Button */}
-            <button
+            <Button
               onClick={handleAnalyzeClick}
               disabled={isProcessing}
-              className={`flex-1 flex items-center justify-center rounded-lg px-4 py-2.5 text-sm font-medium transition-all duration-200 ${
-                isProcessing
-                  ? "bg-gray-100 text-gray-500 cursor-not-allowed"
-                  : "bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700 active:from-red-700 active:to-red-800 shadow-md hover:shadow-lg"
-              }`}
+              isLoading={isProcessing}
+              variant="primary"
+              size="md"
+              className="flex-1"
+              leftIcon={!isProcessing && <FaPlayCircle className="h-4 w-4" />}
             >
-              {isProcessing ? (
-                <FaSpinner className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <FaPlayCircle className="h-4 w-4 mr-2" />
-              )}
               {isProcessing ? "Đang xử lý" : "Phân tích"}
-            </button>
+            </Button>
 
             {/* Delete Button */}
-            <button
+            <Button
               onClick={handleDeleteClick}
               disabled={deleteLoading}
-              className={`flex items-center justify-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
-                deleteLoading
-                  ? "bg-gray-100 text-gray-500 cursor-not-allowed"
-                  : "bg-gradient-to-r from-gray-500 to-gray-600 text-white hover:from-gray-600 hover:to-gray-700 active:from-gray-700 active:to-gray-800 shadow-md hover:shadow-lg"
-              }`}
+              isLoading={deleteLoading}
+              variant="secondary"
+              size="icon"
             >
-              {deleteLoading ? (
-                <FaSpinner className="h-4 w-4 animate-spin" />
-              ) : (
-                <FaTrash className="h-4 w-4" />
-              )}
-            </button>
+              <FaTrash className="h-4 w-4" />
+            </Button>
           </div>
         </div>
       </div>

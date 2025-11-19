@@ -1,28 +1,32 @@
 /* eslint-disable */
 
-import { HiX } from "react-icons/hi";
-import { FaPlayCircle, FaTrash, FaSpinner } from "react-icons/fa";
-import { MdLogout } from "react-icons/md";
+import {
+  XMarkIcon as HiX,
+  PlayIcon as FaPlayCircle,
+  TrashIcon as FaTrash,
+  ArrowPathIcon as FaSpinner,
+  ArrowRightOnRectangleIcon as MdLogout,
+} from "@heroicons/react/24/solid";
 import Links from "./components/Links";
 import { useNavigate } from "react-router-dom";
 
 import routes from "routes.js";
-import cosariLogo from "assets/img/logo/COSARI.png";
+import cosariLogo from "assets/img/logo/VLU_Logo_Final_VLU_logo ngang_Vie_RedWhite.png";
 import { useImageManagement } from "contexts/ImageManagementContext";
 import { useAuth } from "contexts/AuthContext";
 
 const Sidebar = ({ open, onClose }) => {
   const navigate = useNavigate();
   const { logout, user } = useAuth();
-  const { 
-    selectedImages, 
-    analyzeFunction, 
-    deleteFunction, 
-    isAnalyzing, 
+  const {
+    selectedImages,
+    analyzeFunction,
+    deleteFunction,
+    isAnalyzing,
     isDeleting,
-    analyzeProgress
+    analyzeProgress,
   } = useImageManagement();
-  
+
   const handleAnalyzeSelected = () => {
     if (analyzeFunction) {
       analyzeFunction();
@@ -42,27 +46,23 @@ const Sidebar = ({ open, onClose }) => {
 
   return (
     <div
-      className={`sm:none duration-175 linear fixed !z-50 flex min-h-full flex-col bg-white pb-10 shadow-2xl shadow-white/5 transition-all dark:!bg-navy-800 dark:text-white md:!z-50 lg:!z-50 xl:!z-0 ${
-        open ? "translate-x-0" : "-translate-x-96"
+      className={`sm:none duration-175 linear fixed !z-50 m-4 flex min-h-[calc(100vh-32px)] w-[300px] flex-col rounded-3xl border border-white/10 bg-white/5 pb-10 shadow-2xl shadow-white/5 backdrop-blur-xl transition-all md:!z-50 lg:!z-50 xl:!z-50 ${
+        open ? "translate-x-0" : "-translate-x-96 xl:translate-x-0"
       }`}
     >
       <span
-        className="absolute top-4 right-4 block cursor-pointer xl:hidden"
+        className="absolute right-4 top-4 z-10 block cursor-pointer text-white xl:hidden"
         onClick={onClose}
       >
-        <HiX />
+        <HiX className="h-6 w-6" />
       </span>
 
-      <div className={`mx-[56px] mt-[50px] flex items-center`}>
-        <div className="mt-1 ml-1 flex items-center">
-          <img 
-            src={cosariLogo} 
-            alt="COSARI Logo" 
-            className="h-12 w-auto"
-          />
+      <div className={`mx-[56px] mt-8 flex items-center`}>
+        <div className="ml-1 mt-1 flex items-center">
+          <img src={cosariLogo} alt="COSARI Logo" className="h-12 w-auto" />
         </div>
       </div>
-      <div class="mt-[58px] mb-7 h-px bg-gray-300 dark:bg-white/30" />
+      <div className="mx-6 mb-7 mt-6 h-px bg-white/20" />
       {/* Nav item */}
 
       <ul className="mb-auto pt-1">
@@ -70,64 +70,86 @@ const Sidebar = ({ open, onClose }) => {
       </ul>
 
       {/* Action Buttons */}
-      <div className="px-4 mb-4">
+      <div className="mb-4 px-4">
         <div className="space-y-3">
           {/* Analyze Selected Button */}
           <button
             onClick={handleAnalyzeSelected}
             disabled={selectedImages.size === 0 || isAnalyzing}
-            className={`w-full flex items-center justify-center px-4 py-3 rounded-xl text-white transition duration-200 ${
+            className={`text-black group relative flex w-full items-center justify-center overflow-hidden rounded-xl px-4 py-3 font-semibold transition duration-200 ${
               selectedImages.size === 0 || isAnalyzing
-                ? "bg-gray-400 cursor-not-allowed"
-                : "bg-green-500 hover:bg-green-600 active:bg-green-700"
+                ? "cursor-not-allowed bg-white/20 text-white/50"
+                : "bg-white shadow-lg hover:bg-white/90 active:bg-white/80"
             }`}
           >
-            {isAnalyzing ? (
-              <FaSpinner className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <FaPlayCircle className="h-4 w-4 mr-2" />
+            {selectedImages.size > 0 && !isAnalyzing && (
+              <div className="from-transparent to-transparent absolute inset-0 -translate-x-full skew-x-12 bg-gradient-to-r via-white/30 transition-transform duration-1000 group-hover:translate-x-full" />
             )}
-            {isAnalyzing 
-              ? `Đang xử lý... (${analyzeProgress.completed}/${analyzeProgress.total})`
-              : `Phân tích đã chọn (${selectedImages.size})`
-            }
+            <span className="relative z-10 flex items-center justify-center gap-2">
+              {isAnalyzing ? (
+                <>
+                  <FaSpinner className="h-4 w-4 animate-spin" />
+                  <span>
+                    Đang xử lý... ({analyzeProgress.completed}/
+                    {analyzeProgress.total})
+                  </span>
+                </>
+              ) : (
+                <>
+                  <FaPlayCircle className="h-4 w-4" />
+                  <span>Phân tích đã chọn ({selectedImages.size})</span>
+                </>
+              )}
+            </span>
           </button>
 
           {/* Delete Selected Button */}
           <button
             onClick={handleDeleteSelected}
             disabled={selectedImages.size === 0 || isDeleting}
-            className={`w-full flex items-center justify-center px-4 py-3 rounded-xl text-white transition duration-200 ${
+            className={`group relative flex w-full items-center justify-center rounded-xl border border-white/20 px-4 py-3 backdrop-blur-sm transition duration-200 ${
               selectedImages.size === 0 || isDeleting
-                ? "bg-gray-400 cursor-not-allowed"
-                : "bg-red-500 hover:bg-red-600 active:bg-red-700"
+                ? "cursor-not-allowed bg-white/10 text-white/50"
+                : "border-white/30 bg-white/10 text-white hover:bg-white/20"
             }`}
           >
-            {isDeleting ? (
-              <FaSpinner className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <FaTrash className="h-4 w-4 mr-2" />
-            )}
-            {isDeleting ? "Đang xóa..." : `Xóa đã chọn (${selectedImages.size})`}
+            <span className="flex items-center justify-center gap-2">
+              {isDeleting ? (
+                <>
+                  <FaSpinner className="h-4 w-4 animate-spin" />
+                  <span>Đang xóa...</span>
+                </>
+              ) : (
+                <>
+                  <FaTrash className="h-4 w-4" />
+                  <span>Xóa đã chọn ({selectedImages.size})</span>
+                </>
+              )}
+            </span>
           </button>
         </div>
       </div>
 
+      {/* User Info */}
+      {user && (
+        <div className="mx-4 mb-4 rounded-xl border border-white/10 bg-white/5 p-3 px-4 backdrop-blur-sm">
+          <p className="text-center text-xs text-white/60">Đã đăng nhập</p>
+          <p className="mt-1 text-center text-sm font-semibold text-white">
+            {user.username}
+          </p>
+        </div>
+      )}
+
       {/* Logout Button */}
-      <div className="px-4 mb-4">
-        <div className="border-t border-gray-300 dark:border-white/30 pt-4">
+      <div className="mb-4 px-4">
+        <div className="border-t border-white/20 pt-4">
           <button
             onClick={handleLogout}
-            className="w-full flex items-center justify-center px-4 py-3 rounded-xl text-white bg-red-500 hover:bg-red-600 active:bg-red-700 transition duration-200"
+            className="group relative flex w-full items-center justify-center rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white backdrop-blur-sm transition duration-200 hover:border-white/30 hover:bg-white/20"
           >
-            <MdLogout className="h-5 w-5 mr-2" />
+            <MdLogout className="mr-2 h-5 w-5" />
             Đăng xuất
           </button>
-          {user && (
-            <p className="text-xs text-center text-gray-600 dark:text-gray-400 mt-2">
-              Đã đăng nhập: <span className="font-medium">{user.username}</span>
-            </p>
-          )}
         </div>
       </div>
 

@@ -159,7 +159,7 @@ export const api = {
 
   // Image operations
   images: {
-    getAll: ({ page = 1, limit = 20, folderPath, sortField, sortOrder } = {}) => {
+    getAll: ({ page = 1, limit = 20, folderPath, sortField, sortOrder, startDate, endDate } = {}) => {
       const params = new URLSearchParams({
         page: String(page),
         limit: String(limit),
@@ -173,6 +173,12 @@ export const api = {
       }
       if (sortOrder) {
         params.append("sortOrder", sortOrder);
+      }
+      if (startDate) {
+        params.append("startDate", startDate);
+      }
+      if (endDate) {
+        params.append("endDate", endDate);
       }
 
       return apiCall(`${API_CONFIG.IMAGES.GET_ALL}?${params.toString()}`);
@@ -242,6 +248,10 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(data),
     }),
+    getInfoBatch: (data) => apiCall('/GetFormExtractInformationBatch', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
   },
   
   // Queue operations
@@ -262,7 +272,18 @@ export const api = {
       const endpoint = suffix ? `/statistics/dashboard?${suffix}` : "/statistics/dashboard";
       return apiCall(endpoint);
     },
-    exportAll: () => apiCall('/statistics/export-all'),
+    exportAll: ({ startDate, endDate } = {}) => {
+      const params = new URLSearchParams();
+      if (startDate) {
+        params.append("startDate", startDate);
+      }
+      if (endDate) {
+        params.append("endDate", endDate);
+      }
+      const suffix = params.toString();
+      const endpoint = suffix ? `/statistics/export-all?${suffix}` : '/statistics/export-all';
+      return apiCall(endpoint);
+    },
   },
 };
 

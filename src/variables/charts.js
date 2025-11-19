@@ -14,13 +14,13 @@ export const barChartOptionsDailyTraffic = {
   tooltip: {
     style: {
       fontSize: "12px",
-      fontFamily: undefined,
+      fontFamily: "SF Pro Display, -apple-system, BlinkMacSystemFont, sans-serif",
       backgroundColor: "#000000"
     },
     onDatasetHover: {
       style: {
         fontSize: "12px",
-        fontFamily: undefined,
+        fontFamily: "SF Pro Display, -apple-system, BlinkMacSystemFont, sans-serif",
       },
     },
     theme: "dark",
@@ -140,7 +140,7 @@ export const pieChartOptions = {
     theme: "dark",
     style: {
       fontSize: "12px",
-      fontFamily: undefined,
+      fontFamily: "SF Pro Display, -apple-system, BlinkMacSystemFont, sans-serif",
       backgroundColor: "#000000"
     },
   },

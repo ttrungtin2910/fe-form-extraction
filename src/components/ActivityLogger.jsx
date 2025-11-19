@@ -3,7 +3,6 @@
  * Tracks user activities and sends them to backend
  */
 import React, { createContext, useContext, useCallback } from 'react';
-import { api } from '../config/api';
 
 const ActivityLoggerContext = createContext();
 

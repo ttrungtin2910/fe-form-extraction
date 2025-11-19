@@ -1,11 +1,19 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useMemo,
+} from "react";
 
 const ImageManagementContext = createContext();
 
 export const useImageManagement = () => {
   const context = useContext(ImageManagementContext);
   if (!context) {
-    throw new Error('useImageManagement must be used within an ImageManagementProvider');
+    throw new Error(
+      "useImageManagement must be used within an ImageManagementProvider"
+    );
   }
   return context;
 };
@@ -18,81 +26,113 @@ export const ImageManagementProvider = ({ children }) => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [analyzingImages, setAnalyzingImages] = useState(new Set());
-  const [analyzeProgress, setAnalyzeProgress] = useState({ completed: 0, total: 0 });
+  const [analyzeProgress, setAnalyzeProgress] = useState({
+    completed: 0,
+    total: 0,
+  });
 
-  const updateSelectedImages = (newSelectedImages) => {
+  // Memoize all functions to prevent infinite re-renders
+  const updateSelectedImages = useCallback((newSelectedImages) => {
     setSelectedImages(newSelectedImages);
-  };
+  }, []);
 
-  const updateImages = (newImages) => {
+  const updateImages = useCallback((newImages) => {
     setImages(newImages);
-  };
+  }, []);
 
-  const setAnalyzeHandler = (handler) => {
+  const setAnalyzeHandler = useCallback((handler) => {
     setAnalyzeFunction(() => handler);
-  };
+  }, []);
 
-  const setDeleteHandler = (handler) => {
+  const setDeleteHandler = useCallback((handler) => {
     setDeleteFunction(() => handler);
-  };
+  }, []);
 
-  const setAnalyzingState = (state) => {
+  const setAnalyzingState = useCallback((state) => {
     setIsAnalyzing(state);
-  };
+  }, []);
 
-  const setDeletingState = (state) => {
+  const setDeletingState = useCallback((state) => {
     setIsDeleting(state);
-  };
+  }, []);
 
-  const addAnalyzingImage = (imageName) => {
-    setAnalyzingImages(prev => new Set([...prev, imageName]));
-  };
+  const addAnalyzingImage = useCallback((imageName) => {
+    setAnalyzingImages((prev) => new Set([...prev, imageName]));
+  }, []);
 
-  const removeAnalyzingImage = (imageName) => {
-    setAnalyzingImages(prev => {
+  const removeAnalyzingImage = useCallback((imageName) => {
+    setAnalyzingImages((prev) => {
       const newSet = new Set(prev);
       newSet.delete(imageName);
       return newSet;
     });
-  };
+  }, []);
 
-  const clearAnalyzingImages = () => {
+  const clearAnalyzingImages = useCallback(() => {
     setAnalyzingImages(new Set());
-  };
+  }, []);
 
-  const setAnalyzeProgressState = (completed, total) => {
+  const setAnalyzeProgressState = useCallback((completed, total) => {
     setAnalyzeProgress({ completed, total });
-  };
+  }, []);
 
-  const resetAnalyzeProgress = () => {
+  const resetAnalyzeProgress = useCallback(() => {
     setAnalyzeProgress({ completed: 0, total: 0 });
-  };
+  }, []);
 
-  const value = {
-    selectedImages,
-    images,
-    updateSelectedImages,
-    updateImages,
-    setAnalyzeHandler,
-    setDeleteHandler,
-    setAnalyzingState,
-    setDeletingState,
-    addAnalyzingImage,
-    removeAnalyzingImage,
-    clearAnalyzingImages,
-    setAnalyzeProgressState,
-    resetAnalyzeProgress,
-    analyzeFunction,
-    deleteFunction,
-    isAnalyzing,
-    isDeleting,
-    analyzingImages,
-    analyzeProgress,
-  };
+  // Memoize the context value to prevent unnecessary re-renders
+  // Important: Set objects and function objects are excluded from dependencies
+  // because they cannot be reliably compared and would cause infinite loops
+  const value = useMemo(
+    () => ({
+      selectedImages,
+      images,
+      updateSelectedImages,
+      updateImages,
+      setAnalyzeHandler,
+      setDeleteHandler,
+      setAnalyzingState,
+      setDeletingState,
+      addAnalyzingImage,
+      removeAnalyzingImage,
+      clearAnalyzingImages,
+      setAnalyzeProgressState,
+      resetAnalyzeProgress,
+      analyzeFunction,
+      deleteFunction,
+      isAnalyzing,
+      isDeleting,
+      analyzingImages,
+      analyzeProgress,
+    }),
+    // Only include primitive values and sizes - exclude Set objects and function objects
+    // This prevents infinite loops while still updating when meaningful values change
+    [
+      selectedImages.size,
+      analyzingImages.size,
+      images,
+      updateSelectedImages,
+      updateImages,
+      setAnalyzeHandler,
+      setDeleteHandler,
+      setAnalyzingState,
+      setDeletingState,
+      addAnalyzingImage,
+      removeAnalyzingImage,
+      clearAnalyzingImages,
+      setAnalyzeProgressState,
+      resetAnalyzeProgress,
+      // analyzeFunction and deleteFunction excluded - they are function objects that change frequently
+      isAnalyzing,
+      isDeleting,
+      analyzeProgress.completed,
+      analyzeProgress.total,
+    ]
+  );
 
   return (
     <ImageManagementContext.Provider value={value}>
       {children}
     </ImageManagementContext.Provider>
   );
-}; 
+};

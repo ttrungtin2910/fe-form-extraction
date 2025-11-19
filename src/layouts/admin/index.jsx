@@ -5,6 +5,7 @@ import Sidebar from "components/sidebar";
 import Footer from "components/footer/Footer";
 import routes from "routes.js";
 import { ImageManagementProvider } from "contexts/ImageManagementContext";
+import DarkVeil from "components/backgrounds/DarkVeil";
 
 export default function Admin(props) {
   const { ...rest } = props;
@@ -60,40 +61,52 @@ export default function Admin(props) {
   document.documentElement.dir = "ltr";
   return (
     <ImageManagementProvider>
-      <div className="flex h-full w-full">
+      {/* DarkVeil Background Animation for all pages */}
+      <div className="bg-black fixed inset-0 z-0">
+        <DarkVeil
+          speed={0.4}
+          hueShift={230}
+          noiseIntensity={0.05}
+          scanlineIntensity={0}
+          scanlineFrequency={0}
+          warpAmount={0}
+        />
+      </div>
+
+      <div className="relative z-10 flex min-h-screen w-full">
         <Sidebar open={open} onClose={() => setOpen(false)} />
         {/* Navbar & Main Content */}
-        <div className="h-full w-full bg-lightPrimary dark:!bg-navy-900">
-        {/* Main Content */}
-        <main
-          className={`mx-[12px] h-full flex-none transition-all md:pr-2 xl:ml-[313px]`}
-        >
-          {/* Routes */}
-          <div className="h-full">
-            <Navbar
-              onOpenSidenav={() => setOpen(true)}
-              logoText={"Horizon UI Tailwind React"}
-              brandText={currentRoute}
-              secondary={getActiveNavbar(routes)}
-              {...rest}
-            />
-            <div className="pt-5s mx-auto mb-auto h-full min-h-[84vh] p-2 md:pr-2">
-              <Routes>
-                {getRoutes(routes)}
+        <div className="h-full w-full flex-1">
+          {/* Main Content */}
+          <main
+            className={`mx-[12px] h-full flex-none transition-all md:pr-2 xl:ml-[332px]`}
+          >
+            {/* Routes */}
+            <div className="h-full">
+              <Navbar
+                onOpenSidenav={() => setOpen(true)}
+                logoText={"Horizon UI Tailwind React"}
+                brandText={currentRoute}
+                secondary={getActiveNavbar(routes)}
+                {...rest}
+              />
+              <div className="pt-5s mx-auto mb-auto h-full min-h-[84vh] p-2 md:pr-2">
+                <Routes>
+                  {getRoutes(routes)}
 
-                <Route
-                  path="/"
-                  element={<Navigate to="/admin/dashboard" replace />}
-                />
-              </Routes>
+                  <Route
+                    path="/"
+                    element={<Navigate to="/admin/dashboard" replace />}
+                  />
+                </Routes>
+              </div>
+              <div className="p-3">
+                <Footer />
+              </div>
             </div>
-            <div className="p-3">
-              <Footer />
-            </div>
-          </div>
-        </main>
+          </main>
+        </div>
       </div>
-    </div>
     </ImageManagementProvider>
   );
 }

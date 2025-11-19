@@ -1,8 +1,15 @@
 import React, { useState, useEffect } from "react";
-import { FiSearch, FiSave } from "react-icons/fi";
-import { MdDelete, MdAdd } from "react-icons/md";
+import {
+  MagnifyingGlassIcon as FiSearch,
+  BookmarkIcon as FiSave,
+  TrashIcon as MdDelete,
+  PlusIcon as MdAdd,
+  CircleStackIcon as MdSync,
+} from "@heroicons/react/24/solid";
 import { BsToggleOn, BsToggleOff } from "react-icons/bs";
-import { FaSpinner } from "react-icons/fa";
+import Button from "components/button/Button";
+import { motion } from "framer-motion";
+import BlurText from "components/animations/BlurText";
 
 const mockData = [
   {
@@ -26,18 +33,20 @@ const mockData = [
 ];
 
 const ActionButton = ({ children, onClick, tooltip, color }) => (
-  <button
+  <motion.button
     onClick={onClick}
-    className={`relative group mx-1 p-2 rounded-full transition hover:bg-gray-100 focus:outline-none ${color}`}
+    className={`group relative mx-1 rounded-full border border-white/20 bg-white/10 p-2 backdrop-blur-sm transition hover:bg-white/20 focus:outline-none ${color}`}
+    whileHover={{ scale: 1.1 }}
+    whileTap={{ scale: 0.9 }}
     tabIndex={0}
   >
     {children}
     {tooltip && (
-      <span className="absolute z-10 left-1/2 -translate-x-1/2 -top-8 px-2 py-1 rounded bg-gray-800 text-white text-xs opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition pointer-events-none whitespace-nowrap">
+      <span className="pointer-events-none absolute -top-8 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded border border-white/20 bg-white/10 px-2 py-1 text-xs text-white opacity-0 backdrop-blur-sm transition group-hover:opacity-100 group-focus:opacity-100">
         {tooltip}
       </span>
     )}
-  </button>
+  </motion.button>
 );
 
 const initialNewEndpoint = {
@@ -56,7 +65,6 @@ const Synchronization = () => {
   const [showDialog, setShowDialog] = useState(false);
   const [newEndpoint, setNewEndpoint] = useState(initialNewEndpoint);
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
 
   // ✅ REMOVED: Artificial delay - no need for fake loading
   useEffect(() => {
@@ -102,87 +110,196 @@ const Synchronization = () => {
     setError("");
   };
 
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+        delayChildren: 0.2,
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.5,
+        ease: [0.25, 0.46, 0.45, 0.94],
+      },
+    },
+  };
+
   return (
-    <div className="p-4 bg-gray-50 min-h-screen relative">
-      {/* ✅ REMOVED: Fake loading overlay */}
-      <div className="max-w-6xl mx-auto">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-          <div className="relative w-full sm:w-80">
-            <input
-              type="text"
-              className="w-full pl-11 pr-16 py-2.5 rounded-full border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-red-200 text-gray-700 shadow-sm text-base transition"
-              placeholder="Tìm kiếm điểm cuối"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
+    <motion.div
+      className="relative z-10 min-h-screen p-4 md:p-6"
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+    >
+      <div className="mx-auto max-w-6xl">
+        {/* Header Section */}
+        <motion.div className="mb-8" variants={itemVariants}>
+          <div className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-xl md:p-8">
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: "spring", stiffness: 200, damping: 15 }}
+              className="mb-6 inline-flex h-16 w-16 items-center justify-center rounded-2xl border border-white/20 bg-white/10 shadow-lg backdrop-blur-sm"
+            >
+              <MdSync className="h-8 w-8 text-white" />
+            </motion.div>
+
+            <BlurText
+              text=" Đồng Bộ Hóa"
+              animateBy="words"
+              direction="top"
+              delay={150}
+              className="mb-4 text-3xl font-bold leading-normal tracking-normal text-white md:text-4xl"
             />
-            <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xl" />
-            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full border border-gray-200 select-none">⌘ S</span>
+
+            <motion.p
+              variants={itemVariants}
+              className="text-sm leading-normal text-white/70 md:text-base"
+            >
+              Quản lý và cấu hình các điểm cuối đồng bộ dữ liệu
+            </motion.p>
           </div>
-          <button
-            className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-gradient-to-r from-red-400 to-red-600 hover:from-red-500 hover:to-red-700 text-white font-bold text-base shadow-lg transition-all duration-200 focus:outline-none"
-            onClick={() => setShowDialog(true)}
-          >
-            <MdAdd className="text-2xl" /> Thêm điểm cuối mới
-          </button>
-        </div>
-        <div className="rounded-2xl shadow-xl border border-gray-100 bg-white overflow-hidden">
+        </motion.div>
+
+        {/* Action Bar */}
+        <motion.div
+          className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-xl"
+          variants={itemVariants}
+        >
+          <div className="flex flex-1 flex-col flex-wrap gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="relative w-full sm:w-80">
+              <input
+                type="text"
+                className="w-full rounded-xl border border-white/20 bg-white/10 py-2.5 pl-11 pr-16 text-base text-white placeholder-white/50 shadow-sm backdrop-blur-sm transition hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/30"
+                placeholder="Tìm kiếm điểm cuối"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+              <FiSearch className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-white/70" />
+              <span className="absolute right-4 top-1/2 -translate-y-1/2 select-none rounded-full border border-white/20 bg-white/10 px-2 py-0.5 text-xs text-white/50">
+                ⌘ S
+              </span>
+            </div>
+            <Button
+              variant="primary"
+              size="lg"
+              leftIcon={<MdAdd className="h-6 w-6" />}
+              onClick={() => setShowDialog(true)}
+              className="text-black flex-shrink-0 whitespace-nowrap rounded-full bg-white shadow-lg hover:bg-white/90"
+            >
+              Thêm điểm cuối mới
+            </Button>
+          </div>
+        </motion.div>
+        <motion.div
+          className="overflow-hidden rounded-3xl border border-white/10 bg-white/5 shadow-2xl backdrop-blur-xl"
+          variants={itemVariants}
+        >
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
-              <thead className="bg-gray-100 sticky top-0 z-10">
+              <thead className="sticky top-0 z-10 border-b border-white/10 bg-white/5 backdrop-blur-sm">
                 <tr>
-                  <th className="px-4 py-3 text-left font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap">ID</th>
-                  <th className="px-4 py-3 text-left font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap">Tên CRM</th>
-                  <th className="px-4 py-3 text-left font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap">Mô tả CRM</th>
-                  <th className="px-4 py-3 text-left font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap">URL điểm cuối</th>
-                  <th className="px-4 py-3 text-left font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap">ID xác thực</th>
-                  <th className="px-4 py-3 text-left font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap">Mật khẩu</th>
-                  <th className="px-4 py-3 text-center font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap">Thao tác</th>
+                  <th className="whitespace-nowrap px-4 py-3 text-left font-bold uppercase tracking-wider text-white">
+                    ID
+                  </th>
+                  <th className="whitespace-nowrap px-4 py-3 text-left font-bold uppercase tracking-wider text-white">
+                    Tên CRM
+                  </th>
+                  <th className="whitespace-nowrap px-4 py-3 text-left font-bold uppercase tracking-wider text-white">
+                    Mô tả CRM
+                  </th>
+                  <th className="whitespace-nowrap px-4 py-3 text-left font-bold uppercase tracking-wider text-white">
+                    URL điểm cuối
+                  </th>
+                  <th className="whitespace-nowrap px-4 py-3 text-left font-bold uppercase tracking-wider text-white">
+                    ID xác thực
+                  </th>
+                  <th className="whitespace-nowrap px-4 py-3 text-left font-bold uppercase tracking-wider text-white">
+                    Mật khẩu
+                  </th>
+                  <th className="whitespace-nowrap px-4 py-3 text-center font-bold uppercase tracking-wider text-white">
+                    Thao tác
+                  </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-100">
+              <tbody className="divide-y divide-white/10">
                 {filteredData.map((item, idx) => (
-                  <tr
+                  <motion.tr
                     key={item.id}
-                    className="hover:bg-red-50/60 transition group"
+                    className="group transition hover:bg-white/10"
+                    variants={itemVariants}
+                    whileHover={{ scale: 1.01 }}
                   >
-                    <td className="px-4 py-3 font-semibold text-gray-900">{item.id}</td>
-                    <td className="px-4 py-3 text-gray-800">{item.name}</td>
-                    <td className="px-4 py-3 text-gray-700">{item.description}</td>
-                    <td className="px-4 py-3 text-blue-600 underline break-all max-w-xs">{item.url}</td>
-                    <td className="px-4 py-3 text-gray-700">{item.authId}</td>
-                    <td className="px-4 py-3 text-gray-700">{item.password}</td>
+                    <td className="px-4 py-3 font-semibold text-white">
+                      {item.id}
+                    </td>
+                    <td className="px-4 py-3 text-white/90">{item.name}</td>
+                    <td className="px-4 py-3 text-white/70">
+                      {item.description}
+                    </td>
+                    <td className="max-w-xs break-all px-4 py-3 text-blue-300 underline">
+                      {item.url}
+                    </td>
+                    <td className="px-4 py-3 text-white/70">{item.authId}</td>
+                    <td className="px-4 py-3 text-white/70">{item.password}</td>
                     <td className="px-4 py-3 text-center">
                       <ActionButton
                         onClick={() => handleToggle(idx)}
-                        tooltip={item.enabled ? "Tắt điểm cuối" : "Bật điểm cuối"}
+                        tooltip={
+                          item.enabled ? "Tắt điểm cuối" : "Bật điểm cuối"
+                        }
                         color=""
                       >
                         {item.enabled ? (
-                          <BsToggleOn className="text-2xl text-blue-500 transition" />
+                          <BsToggleOn className="h-6 w-6 text-blue-400 transition" />
                         ) : (
-                          <BsToggleOff className="text-2xl text-gray-400 transition" />
+                          <BsToggleOff className="h-6 w-6 text-white/40 transition" />
                         )}
                       </ActionButton>
                       <ActionButton tooltip="Lưu thay đổi" color="">
-                        <FiSave className="text-2xl text-green-500 transition" />
+                        <FiSave className="h-6 w-6 text-green-400 transition" />
                       </ActionButton>
                       <ActionButton
                         onClick={() => handleDelete(idx)}
                         tooltip="Xóa điểm cuối"
                         color=""
                       >
-                        <MdDelete className="text-2xl text-red-500 transition" />
+                        <MdDelete className="h-6 w-6 text-red-400 transition" />
                       </ActionButton>
                     </td>
-                  </tr>
+                  </motion.tr>
                 ))}
                 {filteredData.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="text-center text-gray-400 py-16">
+                    <td colSpan={7} className="py-16 text-center text-white/50">
                       <div className="flex flex-col items-center gap-2">
-                        <svg width="48" height="48" fill="none" viewBox="0 0 24 24"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10Zm-1-5h2v2h-2v-2Zm0-8h2v6h-2V9Z" fill="#e5e7eb"/></svg>
-                        <span className="text-lg font-semibold">Không tìm thấy điểm cuối.</span>
-                        <span className="text-sm text-gray-400">Thử điều chỉnh tìm kiếm hoặc thêm điểm cuối mới.</span>
+                        <svg
+                          width="48"
+                          height="48"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10Zm-1-5h2v2h-2v-2Zm0-8h2v6h-2V9Z"
+                            fill="currentColor"
+                          />
+                        </svg>
+                        <span className="text-lg font-semibold text-white">
+                          Không tìm thấy điểm cuối.
+                        </span>
+                        <span className="text-sm text-white/70">
+                          Thử điều chỉnh tìm kiếm hoặc thêm điểm cuối mới.
+                        </span>
                       </div>
                     </td>
                   </tr>
@@ -190,23 +307,44 @@ const Synchronization = () => {
               </tbody>
             </table>
           </div>
-        </div>
+        </motion.div>
 
         {/* Dialog for adding new endpoint */}
         {showDialog && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-black/50">
-            <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 max-h-[90vh] overflow-auto p-0 animate-fadeIn" onClick={e => e.stopPropagation()}>
+          <motion.div
+            className="bg-black/60 fixed inset-0 z-[100] flex items-center justify-center backdrop-blur-md"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => {
+              setShowDialog(false);
+              setError("");
+            }}
+          >
+            <motion.div
+              className="relative mx-4 max-h-[90vh] w-full max-w-lg overflow-auto rounded-3xl border border-white/20 bg-gray-800/50 p-0 shadow-2xl backdrop-blur-xl"
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              onClick={(e) => e.stopPropagation()}
+            >
               {/* Header with close button */}
-              <div className="flex items-center justify-between p-3 border-b border-gray-200 bg-gradient-to-r from-red-50 to-pink-50 rounded-t-2xl">
+              <div className="flex items-center justify-between rounded-t-3xl border-b border-white/10 bg-white/5 p-4 backdrop-blur-sm">
                 <div className="flex items-center space-x-3">
-                  <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                  <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                  <div className="h-3 w-3 rounded-full bg-red-500"></div>
+                  <div className="h-3 w-3 rounded-full bg-yellow-500"></div>
+                  <div className="h-3 w-3 rounded-full bg-green-500"></div>
                 </div>
-                <h3 className="text-base font-semibold text-gray-700 flex-1 text-center">Thêm điểm cuối mới</h3>
+                <h3 className="flex-1 text-center text-base font-semibold text-white">
+                  Thêm điểm cuối mới
+                </h3>
                 <button
-                  className="text-gray-400 hover:text-red-500 transition duration-200 p-1 rounded-full hover:bg-red-50"
-                  onClick={() => { setShowDialog(false); setError(""); }}
+                  className="rounded-full border border-white/20 bg-white/10 p-1 text-white/70 transition duration-200 hover:bg-white/10 hover:text-white"
+                  onClick={() => {
+                    setShowDialog(false);
+                    setError("");
+                  }}
                   aria-label="Close"
                 >
                   ×
@@ -215,48 +353,104 @@ const Synchronization = () => {
               <div className="p-6">
                 <div className="grid grid-cols-1 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">ID <span className="text-red-500">*</span></label>
-                    <input name="id" value={newEndpoint.id} onChange={handleDialogChange} className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-red-200 focus:outline-none" />
+                    <label className="mb-1 block text-sm font-medium text-white">
+                      ID <span className="text-red-400">*</span>
+                    </label>
+                    <input
+                      name="id"
+                      value={newEndpoint.id}
+                      onChange={handleDialogChange}
+                      className="w-full rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-white placeholder-white/50 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-white/30"
+                    />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Tên CRM <span className="text-red-500">*</span></label>
-                    <input name="name" value={newEndpoint.name} onChange={handleDialogChange} className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-red-200 focus:outline-none" />
+                    <label className="mb-1 block text-sm font-medium text-white">
+                      Tên CRM <span className="text-red-400">*</span>
+                    </label>
+                    <input
+                      name="name"
+                      value={newEndpoint.name}
+                      onChange={handleDialogChange}
+                      className="w-full rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-white placeholder-white/50 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-white/30"
+                    />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Mô tả CRM</label>
-                    <input name="description" value={newEndpoint.description} onChange={handleDialogChange} className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-red-200 focus:outline-none" />
+                    <label className="mb-1 block text-sm font-medium text-white">
+                      Mô tả CRM
+                    </label>
+                    <input
+                      name="description"
+                      value={newEndpoint.description}
+                      onChange={handleDialogChange}
+                      className="w-full rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-white placeholder-white/50 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-white/30"
+                    />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">URL điểm cuối <span className="text-red-500">*</span></label>
-                    <input name="url" value={newEndpoint.url} onChange={handleDialogChange} className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-red-200 focus:outline-none" />
+                    <label className="mb-1 block text-sm font-medium text-white">
+                      URL điểm cuối <span className="text-red-400">*</span>
+                    </label>
+                    <input
+                      name="url"
+                      value={newEndpoint.url}
+                      onChange={handleDialogChange}
+                      className="w-full rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-white placeholder-white/50 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-white/30"
+                    />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">ID xác thực</label>
-                    <input name="authId" value={newEndpoint.authId} onChange={handleDialogChange} className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-red-200 focus:outline-none" />
+                    <label className="mb-1 block text-sm font-medium text-white">
+                      ID xác thực
+                    </label>
+                    <input
+                      name="authId"
+                      value={newEndpoint.authId}
+                      onChange={handleDialogChange}
+                      className="w-full rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-white placeholder-white/50 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-white/30"
+                    />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Mật khẩu</label>
-                    <input name="password" value={newEndpoint.password} onChange={handleDialogChange} className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:ring-2 focus:ring-red-200 focus:outline-none" type="password" />
+                    <label className="mb-1 block text-sm font-medium text-white">
+                      Mật khẩu
+                    </label>
+                    <input
+                      name="password"
+                      value={newEndpoint.password}
+                      onChange={handleDialogChange}
+                      className="w-full rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-white placeholder-white/50 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-white/30"
+                      type="password"
+                    />
                   </div>
-                  <div className="flex items-center gap-2 mt-2">
-                    <input type="checkbox" name="enabled" checked={newEndpoint.enabled} onChange={handleDialogChange} id="enabled" className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-200" />
-                    <label htmlFor="enabled" className="text-sm text-gray-700">Bật điểm cuối</label>
+                  <div className="mt-2 flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      name="enabled"
+                      checked={newEndpoint.enabled}
+                      onChange={handleDialogChange}
+                      id="enabled"
+                      className="h-4 w-4 rounded border-white/30 bg-white/10 text-blue-400 focus:ring-2 focus:ring-blue-400"
+                    />
+                    <label htmlFor="enabled" className="text-sm text-white/70">
+                      Bật điểm cuối
+                    </label>
                   </div>
-                  {error && <div className="text-red-500 text-sm mt-1">{error}</div>}
-                  <button
-                    className="mt-4 w-full py-2 rounded-lg bg-gradient-to-r from-red-400 to-red-600 hover:from-red-500 hover:to-red-700 text-white font-bold text-base shadow-lg transition-all duration-200 focus:outline-none"
+                  {error && (
+                    <div className="mt-1 text-sm text-red-400">{error}</div>
+                  )}
+                  <Button
+                    variant="primary"
+                    size="lg"
+                    className="text-black mt-4 w-full bg-white shadow-lg hover:bg-white/90"
                     onClick={handleDialogSave}
                   >
                     Lưu
-                  </button>
+                  </Button>
                 </div>
               </div>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 };
 
-export default Synchronization; 
+export default Synchronization;

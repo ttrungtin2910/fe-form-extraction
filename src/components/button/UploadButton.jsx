@@ -1,12 +1,16 @@
 import { useRef, useState } from "react";
-import { MdCloudUpload, MdCheckCircle, MdError } from "react-icons/md";
+import {
+  CloudArrowUpIcon as MdCloudUpload,
+  CheckCircleIcon as MdCheckCircle,
+  ExclamationCircleIcon as MdError,
+} from "@heroicons/react/24/solid";
 import { api } from "config/api";
 import { POLLING_CONFIG } from "../../config/polling";
+import Button from "./Button";
 
 const UploadButton = ({ onUploadComplete, folderPath = "" }) => {
     const inputRef = useRef(null);
     const [isUploading, setIsUploading] = useState(false);
-    const [uploadProgress, setUploadProgress] = useState(0);
     const [uploadStatus, setUploadStatus] = useState("idle"); // idle, processing, done, error
     const [uploadedCount, setUploadedCount] = useState(0);
     const [totalFiles, setTotalFiles] = useState(0);
@@ -26,7 +30,6 @@ const UploadButton = ({ onUploadComplete, folderPath = "" }) => {
         setPhase('uploading');
         setTotalFiles(files.length);
         setUploadedCount(0);
-        setUploadProgress(0);
         setIsUploading(true);
         setUploadStatus("processing");
 
@@ -58,7 +61,6 @@ const UploadButton = ({ onUploadComplete, folderPath = "" }) => {
                 uploadTaskIds.push(resp.task_id);
                 uploaded++;
                 setUploadedCount(uploaded);
-                setUploadProgress(Math.round((uploaded / files.length) * 100));
             } catch {
                 setUploadStatus("error");
                 setIsUploading(false);
@@ -126,7 +128,7 @@ const UploadButton = ({ onUploadComplete, folderPath = "" }) => {
         setUploadStatus("done");
         setPhase('done');
         if (onUploadComplete) onUploadComplete();
-        setTimeout(()=>{ setIsUploading(false); setUploadStatus('idle'); setUploadProgress(0); setUploadedCount(0); setTotalFiles(0); setPhase('idle'); setExtractProgress({done:0,total:0}); },2000);
+        setTimeout(()=>{ setIsUploading(false); setUploadStatus('idle'); setUploadedCount(0); setTotalFiles(0); setPhase('idle'); setExtractProgress({done:0,total:0}); },2000);
         e.target.value = "";
     };
 
@@ -161,18 +163,17 @@ const UploadButton = ({ onUploadComplete, folderPath = "" }) => {
 
     return (
         <div>
-            <button
+            <Button
                 onClick={handleUploadClick}
                 disabled={isUploading}
-                className={`linear inline-flex items-center justify-center rounded-xl px-4 py-2 text-base font-medium text-white transition duration-200 ${
-                    isUploading 
-                        ? "bg-gray-400 cursor-not-allowed" 
-                        : "bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 active:from-red-700 active:to-red-800 shadow-md"
-                }`}
+                isLoading={isUploading && uploadStatus === "processing"}
+                variant="primary"
+                size="lg"
+                leftIcon={!isUploading && getStatusIcon()}
+                className="whitespace-nowrap flex-shrink-0"
             >
-                <span className="mr-2">{getStatusIcon()}</span>
                 {getStatusText()}
-            </button>
+            </Button>
 
             {/* Global progress overlay */}
             {isUploading && (
