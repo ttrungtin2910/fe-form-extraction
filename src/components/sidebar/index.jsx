@@ -6,7 +6,6 @@ import { MdLogout } from "react-icons/md";
 import Links from "./components/Links";
 import { useNavigate } from "react-router-dom";
 
-import SidebarCard from "components/sidebar/componentsrtl/SidebarCard";
 import routes from "routes.js";
 import cosariLogo from "assets/img/logo/COSARI.png";
 import { useImageManagement } from "contexts/ImageManagementContext";

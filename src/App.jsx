@@ -1,7 +1,6 @@
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 
-import RtlLayout from "layouts/rtl";
 import AdminLayout from "layouts/admin";
 import AuthLayout from "layouts/auth";
 import ProtectedRoute from "components/ProtectedRoute";
@@ -20,14 +19,6 @@ const App = () => {
         element={
           <ProtectedRoute>
             <AdminLayout />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="rtl/*"
-        element={
-          <ProtectedRoute>
-            <RtlLayout />
           </ProtectedRoute>
         }
       />
