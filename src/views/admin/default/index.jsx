@@ -354,10 +354,15 @@ const Dashboard = () => {
     setCurrentPage(1);
   }, [totalImages]);
 
-  // Stats for pie chart
-  const statusStats = getStatusStats(images);
+  // Stats for pie chart - use ALL images from statistics (fallback to current page if API fails)
+  const statusStats =
+    statistics?.byStatus?.reduce((acc, item) => {
+      acc[item.status] = item.count;
+      return acc;
+    }, {}) || getStatusStats(images);
+
   const statusLabels = Object.keys(statusStats);
-  const statusLabelsVi = statusLabels.map(label => translateStatus(label));
+  const statusLabelsVi = statusLabels.map((label) => translateStatus(label));
   const statusCounts = statusLabels.map((k) => statusStats[k]);
   const statusColors = ["#86efac", "#fca5a5", "#c4b5fd", "#fcd34d", "#d1d5db"];
 
@@ -495,6 +500,8 @@ const Dashboard = () => {
     totalSize: 0,
     avgSize: 0,
   };
+
+const totalImageCount = summary.totalImages || totalImages || images.length;
 
   return (
     <div className="p-1 bg-gray-50 min-h-screen relative">
@@ -637,7 +644,8 @@ const Dashboard = () => {
               <h3 className="text-xl font-bold text-gray-800 mb-6">Chi tiết trạng thái</h3>
               <div className="space-y-3">
                 {statusLabels.map((label, idx) => {
-                  const percentage = images.length > 0 ? ((statusStats[label] || 0) / images.length * 100) : 0;
+                  const percentage =
+                    totalImageCount > 0 ? ((statusStats[label] || 0) / totalImageCount) * 100 : 0;
                   return (
                     <div key={label} className="group">
                       <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200 hover:bg-red-50 hover:border-red-200 transition-all duration-300">
@@ -677,7 +685,7 @@ const Dashboard = () => {
                       <div>
                         <div className="text-sm text-white/90 font-medium">Tỷ lệ xử lý</div>
                         <div className="text-2xl font-bold">
-                          {images.length > 0 ? ((statusStats['Completed'] || 0) / images.length * 100).toFixed(1) : 0}%
+                          {totalImageCount > 0 ? ((statusStats["Completed"] || 0) / totalImageCount * 100).toFixed(1) : 0}%
                         </div>
                       </div>
                     </div>
@@ -685,7 +693,7 @@ const Dashboard = () => {
                   <div className="w-full bg-white/20 rounded-full h-2 overflow-hidden">
                     <div 
                       className="bg-white h-2 rounded-full transition-all duration-1000 ease-out"
-                      style={{ width: `${images.length > 0 ? ((statusStats['Completed'] || 0) / images.length * 100) : 0}%` }}
+                      style={{ width: `${totalImageCount > 0 ? ((statusStats["Completed"] || 0) / totalImageCount * 100) : 0}%` }}
                     ></div>
                   </div>
                 </div>

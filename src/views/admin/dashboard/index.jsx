@@ -100,6 +100,10 @@ const Dashboard = () => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [showImageDialog, setShowImageDialog] = useState(false);
 
+  // State for statistics (for pie chart - calculated from ALL images)
+  const [statistics, setStatistics] = useState(null);
+  const [statsLoading, setStatsLoading] = useState(true);
+
   // Context for sidebar actions
   const {
     updateSelectedImages,
@@ -110,6 +114,21 @@ const Dashboard = () => {
 
   const toast = useToast();
   const confirmModal = useConfirm();
+
+  // Fetch statistics for pie chart (from ALL images)
+  const fetchStatistics = async () => {
+    try {
+      setStatsLoading(true);
+      const data = await api.statistics.getDashboard();
+      setStatistics(data);
+      console.log("Dashboard statistics loaded:", data);
+    } catch (error) {
+      console.error("Error fetching dashboard statistics:", error);
+      // Don't show error toast, just use fallback data
+    } finally {
+      setStatsLoading(false);
+    }
+  };
 
   const fetchImages = async () => {
     setLoading(true);
@@ -162,6 +181,7 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
+    fetchStatistics(); // Fetch statistics once on mount
     fetchImages();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage]);
@@ -288,8 +308,12 @@ const Dashboard = () => {
     setCurrentPage(1);
   }, [totalImages]);
 
-  // Stats for overview
-  const statusStats = getStatusStats(images);
+  // Stats for overview - Use statistics from API (ALL images) instead of current page
+  const statusStats = statistics?.byStatus?.reduce((acc, item) => {
+    acc[item.status] = item.count;
+    return acc;
+  }, {}) || getStatusStats(images); // Fallback to current page if API fails
+  
   const statusLabels = Object.keys(statusStats);
   const statusLabelsVi = statusLabels.map(label => translateStatus(label)); // Translate for display
   const statusCounts = statusLabels.map((k) => statusStats[k]);
@@ -455,7 +479,9 @@ const Dashboard = () => {
                     </svg>
                   </div>
                   <div>
-                    <div className="text-3xl font-bold text-gray-800">{images.length}</div>
+                    <div className="text-3xl font-bold text-gray-800">
+                      {statsLoading ? "..." : (statistics?.summary?.totalImages || totalImages || images.length)}
+                    </div>
                     <div className="text-sm text-gray-600 font-medium">Tổng số hình ảnh</div>
                   </div>
                 </div>
@@ -486,7 +512,7 @@ const Dashboard = () => {
                       </div>
                     </div>
                     <div className="mt-2 text-xs text-gray-500 font-medium">
-                      {images.length > 0 ? ((statusStats[label] / images.length) * 100).toFixed(1) : 0}%
+                      {(statistics?.summary?.totalImages || totalImages) > 0 ? ((statusStats[label] / (statistics?.summary?.totalImages || totalImages)) * 100).toFixed(1) : 0}%
                     </div>
                   </div>
                 </div>
@@ -519,7 +545,8 @@ const Dashboard = () => {
               <h3 className="text-xl font-bold text-gray-800 mb-6">Chi tiết trạng thái</h3>
               <div className="space-y-3">
                 {statusLabels.map((label, idx) => {
-                  const percentage = images.length > 0 ? ((statusStats[label] || 0) / images.length * 100) : 0;
+                  const totalCount = statistics?.summary?.totalImages || totalImages || images.length;
+                  const percentage = totalCount > 0 ? ((statusStats[label] || 0) / totalCount * 100) : 0;
                   return (
                     <div key={label} className="group">
                       <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200 hover:bg-red-50 hover:border-red-200 transition-all duration-300">
@@ -560,7 +587,7 @@ const Dashboard = () => {
                       <div>
                         <div className="text-sm text-white/90 font-medium">Tỷ lệ xử lý</div>
                         <div className="text-2xl font-bold">
-                          {images.length > 0 ? ((statusStats['Completed'] || 0) / images.length * 100).toFixed(1) : 0}%
+                          {(statistics?.summary?.totalImages || totalImages) > 0 ? ((statusStats['Completed'] || 0) / (statistics?.summary?.totalImages || totalImages) * 100).toFixed(1) : 0}%
                         </div>
                       </div>
                     </div>
@@ -568,7 +595,7 @@ const Dashboard = () => {
                   <div className="w-full bg-white/20 rounded-full h-2 overflow-hidden">
                     <div 
                       className="bg-white h-2 rounded-full transition-all duration-1000 ease-out"
-                      style={{ width: `${images.length > 0 ? ((statusStats['Completed'] || 0) / images.length * 100) : 0}%` }}
+                      style={{ width: `${(statistics?.summary?.totalImages || totalImages) > 0 ? ((statusStats['Completed'] || 0) / (statistics?.summary?.totalImages || totalImages) * 100) : 0}%` }}
                     ></div>
                   </div>
                 </div>
