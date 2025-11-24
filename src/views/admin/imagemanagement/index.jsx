@@ -390,7 +390,9 @@ const ImageManagement = () => {
   const handleRefresh = useCallback(async () => {
     try {
       const folderData = await api.images.getFolders();
-      const fetchedFolders = folderData.folders || [];
+      const fetchedFolders = (folderData.folders || []).map(
+        (f) => f.FolderPath || f
+      );
       setFolders(fetchedFolders);
       // Force refresh - clear cache for current folder
       const cacheKey = `${
@@ -1314,8 +1316,11 @@ const ImageManagement = () => {
                   try {
                     await api.images.createFolder(newPath);
                     const folderData = await api.images.getFolders();
-                    setFolders(folderData.folders || []);
-                    await fetchImages(folderData.folders || []);
+                    const mappedFolders = (folderData.folders || []).map(
+                      (f) => f.FolderPath || f
+                    );
+                    setFolders(mappedFolders);
+                    await fetchImages(mappedFolders);
                     setShowNewFolderModal(false);
                   } catch (e) {
                     setModalError(e.message || "Không thể tạo thư mục");
