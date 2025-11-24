@@ -40,14 +40,19 @@ const Navbar = (props) => {
       className="sticky top-4 z-40 flex flex-row flex-wrap items-center justify-between rounded-2xl border border-white/10 bg-white/5 p-4 shadow-xl backdrop-blur-xl"
       initial={{ y: 0, opacity: 1 }}
       animate={{
-        y: isVisible ? 0 : -100,
+        y: isVisible ? 0 : -120,
         opacity: isVisible ? 1 : 0,
+        zIndex: isVisible ? 40 : -1,
       }}
       transition={{
         type: "spring",
         stiffness: 300,
         damping: 30,
         mass: 0.8,
+      }}
+      style={{
+        pointerEvents: isVisible ? "auto" : "none",
+        position: "sticky",
       }}
     >
       <div className="ml-[6px]">

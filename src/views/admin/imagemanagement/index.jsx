@@ -790,7 +790,7 @@ const ImageManagement = () => {
         </motion.div>
       )}
 
-      <div className="relative z-10 p-4 md:p-6">
+      <div className="relative z-20 p-4 md:p-6">
         {/* Header Section */}
         <motion.div className="mb-8" variants={itemVariants}>
           <div className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-xl md:p-8">
@@ -1066,7 +1066,7 @@ const ImageManagement = () => {
         {/* Folders Section - Show immediately or with skeleton */}
         {isInitialLoading && childFolders.length === 0 && currentPage === 1 ? (
           /* Loading skeletons for folders */
-          <motion.div className="mb-8" variants={itemVariants}>
+          <motion.div className="relative z-30 mb-8" variants={itemVariants}>
             <div className="mb-4 flex items-center gap-3">
               <motion.div
                 className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 shadow-xl backdrop-blur-xl"
@@ -1085,7 +1085,7 @@ const ImageManagement = () => {
             </div>
           </motion.div>
         ) : childFolders.length > 0 && currentPage === 1 ? (
-          <motion.div className="mb-8" variants={itemVariants}>
+          <motion.div className="relative z-30 mb-8" variants={itemVariants}>
             <div className="mb-4 flex items-center gap-3">
               <motion.div
                 className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 shadow-xl backdrop-blur-xl"
@@ -1114,7 +1114,7 @@ const ImageManagement = () => {
         {/* Images Section */}
         {isInitialLoading && images.length === 0 ? (
           /* Loading skeletons for initial load */
-          <motion.div variants={itemVariants}>
+          <motion.div className="relative z-30" variants={itemVariants}>
             <div className="mb-4 flex items-center gap-3">
               <motion.div
                 className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 shadow-xl backdrop-blur-xl"
@@ -1132,7 +1132,9 @@ const ImageManagement = () => {
           </motion.div>
         ) : images.length > 0 ? (
           <motion.div
-            className={childFolders.length > 0 && currentPage === 1 ? "" : ""}
+            className={`relative z-30 ${
+              childFolders.length > 0 && currentPage === 1 ? "" : ""
+            }`}
             variants={itemVariants}
           >
             <div className="mb-4 flex items-center gap-3">

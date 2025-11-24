@@ -64,7 +64,7 @@ export default function Admin(props) {
       {/* DarkVeil Background Animation for all pages */}
       <div className="bg-black fixed inset-0 z-0">
         <DarkVeil
-          speed={0.4}
+          speed={0.5}
           hueShift={230}
           noiseIntensity={0.05}
           scanlineIntensity={0}

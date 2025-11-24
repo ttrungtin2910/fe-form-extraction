@@ -146,9 +146,16 @@ const Dashboard = () => {
   const [selected, setSelected] = useState([]);
   const [sortBy, setSortBy] = useState("CreatedAt");
   const [sortDir, setSortDir] = useState("desc");
-  const [dateRange, setDateRange] = useState({
-    startDate: null,
-    endDate: null,
+  const [dateRange, setDateRange] = useState(() => {
+    // Set default start date to 1/1/2025
+    const defaultStartDate = "2025-01-01";
+    // Set default end date to today
+    const today = new Date();
+    const defaultEndDate = today.toISOString().split("T")[0];
+    return {
+      startDate: defaultStartDate,
+      endDate: defaultEndDate,
+    };
   });
 
   // Cache for extracted data with TTL (5 minutes)
@@ -960,7 +967,7 @@ const Dashboard = () => {
 
           {/* Action Bar - Refresh and Export Buttons */}
           <motion.div
-            className="mb-6 flex items-center justify-between rounded-3xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-xl"
+            className="relative z-30 mb-6 flex items-center justify-between rounded-3xl border border-white/10 bg-white/5 p-6 shadow-2xl backdrop-blur-xl"
             variants={itemVariants}
           >
             <div>

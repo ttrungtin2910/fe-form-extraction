@@ -24,10 +24,17 @@ const FolderCard = ({ path, currentFolder, onNavigate, onRefresh }) => {
     let mounted = true;
     const fetchCount = async () => {
       try {
-        const allImages = await api.images.getAll();
-        const images = allImages.filter(
-          (img) => img.FolderPath && img.FolderPath.startsWith(path)
-        );
+        // Get all images with a large limit to get count
+        const allImagesResp = await api.images.getAll({
+          page: 1,
+          limit: 10000,
+        });
+        const allImages = allImagesResp?.data || [];
+        const images = Array.isArray(allImages)
+          ? allImages.filter(
+              (img) => img.FolderPath && img.FolderPath.startsWith(path)
+            )
+          : [];
         const folderData = await apiFE.images.getFolders();
         const allFolders = folderData.folders || [];
         const subFolders = allFolders.filter((f) => f.startsWith(path + "/"));
@@ -37,6 +44,10 @@ const FolderCard = ({ path, currentFolder, onNavigate, onRefresh }) => {
         }
       } catch (e) {
         console.error("[FolderCard] Failed to fetch count", e);
+        if (mounted) {
+          setImgCount(0);
+          setFolderCount(0);
+        }
       }
     };
     fetchCount();
