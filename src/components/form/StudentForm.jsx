@@ -1,24 +1,57 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { CheckIcon as MdCheckBox } from "@heroicons/react/24/solid";
 
-// Custom checkbox outline icon - square with rounded corners
-const CheckboxOutlineIcon = ({ className }) => (
+// Custom checkbox checked icon - with background and checkmark
+const CheckboxCheckedIcon = ({ className }) => (
+  <div className={`relative ${className}`}>
+    <svg
+      className="h-5 w-5"
+      viewBox="0 0 20 20"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      {/* Background */}
+      <rect
+        x="2"
+        y="2"
+        width="16"
+        height="16"
+        rx="3"
+        fill="currentColor"
+        className="text-white"
+      />
+      {/* Checkmark */}
+      <path
+        d="M6 10L9 13L14 7"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="text-gray-800"
+        fill="none"
+      />
+    </svg>
+  </div>
+);
+
+// Custom checkbox unchecked icon - with border and transparent background
+const CheckboxUncheckedIcon = ({ className }) => (
   <svg
     className={className}
+    viewBox="0 0 20 20"
     fill="none"
-    viewBox="0 0 24 24"
-    stroke="currentColor"
-    strokeWidth={2}
+    xmlns="http://www.w3.org/2000/svg"
   >
+    {/* Background */}
     <rect
-      x="4"
-      y="4"
+      x="2"
+      y="2"
       width="16"
       height="16"
       rx="3"
+      fill="rgba(255, 255, 255, 0.1)"
       stroke="currentColor"
-      fill="none"
+      strokeWidth="2"
     />
   </svg>
 );
@@ -74,18 +107,30 @@ const DisplayStudentForm = ({ data, isEditing = false, onDataChange }) => {
       transition={{ type: "spring", stiffness: 400, damping: 17 }}
     >
       {isEditing ? (
-        <input
-          type="checkbox"
-          checked={checked || false}
-          onChange={(e) =>
-            handleNestedFieldChange(parentField, childField, e.target.checked)
-          }
-          className="h-5 w-5 rounded border-white/30 bg-white/10 text-white focus:ring-2 focus:ring-white/50"
-        />
+        <motion.div
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.95 }}
+          transition={{ type: "spring", stiffness: 400, damping: 17 }}
+        >
+          <input
+            type="checkbox"
+            checked={checked || false}
+            onChange={(e) =>
+              handleNestedFieldChange(parentField, childField, e.target.checked)
+            }
+            className="h-5 w-5 cursor-pointer rounded border-2 border-white/40 bg-white/10 text-white transition-all hover:border-white/60 focus:ring-2 focus:ring-white/50 focus:ring-offset-0"
+          />
+        </motion.div>
       ) : checked ? (
-        <MdCheckBox className="h-5 w-5 text-white" />
+        <motion.div
+          initial={{ scale: 0.8 }}
+          animate={{ scale: 1 }}
+          transition={{ type: "spring", stiffness: 400, damping: 17 }}
+        >
+          <CheckboxCheckedIcon className="h-5 w-5" />
+        </motion.div>
       ) : (
-        <CheckboxOutlineIcon className="h-5 w-5 text-gray-400" />
+        <CheckboxUncheckedIcon className="h-5 w-5 text-gray-400" />
       )}
       <span className="text-white">{label}</span>
     </motion.label>
@@ -409,26 +454,54 @@ const DisplayStudentForm = ({ data, isEditing = false, onDataChange }) => {
               parentField="mon_thi_tot_nghiep"
               childField="Toan"
             />
-            <Checkbox
-              checked={data.mon_thi_tot_nghiep?.["Ngoai ngu"]}
-              label="Môn Ngoại ngữ"
-              parentField="mon_thi_tot_nghiep"
-              childField="Ngoai ngu"
-            />
           </div>
           <div className="space-y-3">
-            <Checkbox
-              checked={data.mon_thi_tot_nghiep?.["Khoa hoc tu nhien"]}
-              label="Khoa học tự nhiên"
-              parentField="mon_thi_tot_nghiep"
-              childField="Khoa hoc tu nhien"
-            />
-            <Checkbox
-              checked={data.mon_thi_tot_nghiep?.["Khoa hoc xa hoi"]}
-              label="Khoa học xã hội"
-              parentField="mon_thi_tot_nghiep"
-              childField="Khoa hoc xa hoi"
-            />
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-gray-300">
+                Môn tự chọn 1:
+              </label>
+              <motion.input
+                value={getSafe(data.mon_thi_tot_nghiep?.["Mon tu chon 1"])}
+                onChange={(e) =>
+                  handleNestedFieldChange(
+                    "mon_thi_tot_nghiep",
+                    "Mon tu chon 1",
+                    e.target.value
+                  )
+                }
+                readOnly={!isEditing}
+                className={`w-full rounded-lg border border-white/20 px-3 py-2.5 text-sm text-white transition-all focus:outline-none ${
+                  isEditing
+                    ? "cursor-text bg-white/10 backdrop-blur-sm focus:border-white/30 focus:ring-2 focus:ring-white/30"
+                    : "cursor-default bg-white/5 backdrop-blur-sm"
+                }`}
+                whileFocus={isEditing ? { scale: 1.02 } : {}}
+                transition={{ type: "spring", stiffness: 400, damping: 17 }}
+              />
+            </div>
+            <div>
+              <label className="mb-2 block text-sm font-semibold text-gray-300">
+                Môn tự chọn 2:
+              </label>
+              <motion.input
+                value={getSafe(data.mon_thi_tot_nghiep?.["Mon tu chon 2"])}
+                onChange={(e) =>
+                  handleNestedFieldChange(
+                    "mon_thi_tot_nghiep",
+                    "Mon tu chon 2",
+                    e.target.value
+                  )
+                }
+                readOnly={!isEditing}
+                className={`w-full rounded-lg border border-white/20 px-3 py-2.5 text-sm text-white transition-all focus:outline-none ${
+                  isEditing
+                    ? "cursor-text bg-white/10 backdrop-blur-sm focus:border-white/30 focus:ring-2 focus:ring-white/30"
+                    : "cursor-default bg-white/5 backdrop-blur-sm"
+                }`}
+                whileFocus={isEditing ? { scale: 1.02 } : {}}
+                transition={{ type: "spring", stiffness: 400, damping: 17 }}
+              />
+            </div>
           </div>
         </div>
       </motion.div>
@@ -444,16 +517,18 @@ const DisplayStudentForm = ({ data, isEditing = false, onDataChange }) => {
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-3">
             <Checkbox
-              checked={data.phuong_thuc_xet_tuyen?.["Xet diem thi THPT"]}
-              label="Xét điểm thi THPT"
+              checked={
+                data.phuong_thuc_xet_tuyen?.["Xet diem thi tot nghiep THPT"]
+              }
+              label="Xét điểm thi tốt nghiệp THPT"
               parentField="phuong_thuc_xet_tuyen"
-              childField="Xet diem thi THPT"
+              childField="Xet diem thi tot nghiep THPT"
             />
             <Checkbox
-              checked={data.phuong_thuc_xet_tuyen?.["Xet hoc ba"]}
-              label="Xét học bạ"
+              checked={data.phuong_thuc_xet_tuyen?.["Xet diem hoc ba THPT"]}
+              label="Xét điểm học bạ THPT"
               parentField="phuong_thuc_xet_tuyen"
-              childField="Xet hoc ba"
+              childField="Xet diem hoc ba THPT"
             />
             <Checkbox
               checked={data.phuong_thuc_xet_tuyen?.["Xet diem thi V-SAT"]}
@@ -463,6 +538,12 @@ const DisplayStudentForm = ({ data, isEditing = false, onDataChange }) => {
             />
           </div>
           <div className="space-y-3">
+            <Checkbox
+              checked={data.phuong_thuc_xet_tuyen?.["Xet diem thi DGNL"]}
+              label="Xét điểm thi DGNL"
+              parentField="phuong_thuc_xet_tuyen"
+              childField="Xet diem thi DGNL"
+            />
             <Checkbox
               checked={data.phuong_thuc_xet_tuyen?.["Xet tuyen thang"]}
               label="Xét tuyển thẳng"
