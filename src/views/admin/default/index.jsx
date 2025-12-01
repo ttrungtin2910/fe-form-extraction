@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
-import { motion } from "framer-motion";
+import { createPortal } from "react-dom";
+import { motion, AnimatePresence } from "framer-motion";
 import { api } from "config/api";
 import { POLLING_CONFIG } from "config/polling";
 import UploadButton from "components/button/UploadButton";
@@ -10,15 +11,16 @@ import {
   ArrowPathIcon as FaSpinner,
   ChartBarIcon as FaChartBar,
   DocumentArrowDownIcon as FaFileExcel,
-  CheckIcon as MdCheckBox,
   ArrowPathIcon as MdRefresh,
   PhotoIcon,
   DocumentTextIcon,
   ClockIcon,
   CheckCircleIcon,
+  CogIcon,
+  XMarkIcon,
 } from "@heroicons/react/24/solid";
-import { Square2StackIcon as MdCheckBoxOutlineBlank } from "@heroicons/react/24/outline";
 import { useImageManagement } from "contexts/ImageManagementContext";
+import { useSettings } from "contexts/SettingsContext";
 import { useToast, useConfirm } from "components/common/ToastProvider";
 import { translateStatus } from "utils/statusTranslator";
 import ImageDialog from "components/image/ImageDialog";
@@ -26,6 +28,61 @@ import { exportDashboardStats, exportImagesToExcel } from "utils/excelExport";
 import Button from "components/button/Button";
 import BlurText from "components/animations/BlurText";
 import DateRangePicker from "components/dateRangePicker/DateRangePicker";
+
+// Custom checkbox checked icon - with background and checkmark (same as StudentForm)
+const CheckboxCheckedIcon = ({ className }) => (
+  <div className={`relative ${className}`}>
+    <svg
+      className="h-5 w-5"
+      viewBox="0 0 20 20"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      {/* Background */}
+      <rect
+        x="2"
+        y="2"
+        width="16"
+        height="16"
+        rx="3"
+        fill="currentColor"
+        className="text-white"
+      />
+      {/* Checkmark */}
+      <path
+        d="M6 10L9 13L14 7"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="text-gray-800"
+        fill="none"
+      />
+    </svg>
+  </div>
+);
+
+// Custom checkbox unchecked icon - with border and transparent background (same as StudentForm)
+const CheckboxUncheckedIcon = ({ className }) => (
+  <svg
+    className={className}
+    viewBox="0 0 20 20"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    {/* Background */}
+    <rect
+      x="2"
+      y="2"
+      width="16"
+      height="16"
+      rx="3"
+      fill="rgba(255, 255, 255, 0.1)"
+      stroke="currentColor"
+      strokeWidth="2"
+    />
+  </svg>
+);
 
 const statusColor = (status) => {
   if (status === "Completed")
@@ -177,9 +234,15 @@ const Dashboard = () => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [showImageDialog, setShowImageDialog] = useState(false);
 
+  // State for settings panel
+  const [showSettingsPanel, setShowSettingsPanel] = useState(false);
+
   // Context for sidebar actions
   const { updateSelectedImages, setAnalyzeHandler, setDeleteHandler } =
     useImageManagement();
+
+  // Settings context for column visibility
+  const { columnVisibility, toggleColumn, resetToDefault } = useSettings();
 
   const toast = useToast();
   const confirmModal = useConfirm();
@@ -573,9 +636,9 @@ const Dashboard = () => {
     }, {}) || getStatusStats(images);
 
   const statusLabels = Object.keys(statusStats);
-  const statusLabelsVi = statusLabels.map((label) => translateStatus(label));
+  // const statusLabelsVi = statusLabels.map((label) => translateStatus(label)); // Reserved for future use
   // const statusCounts = statusLabels.map((k) => statusStats[k]); // Reserved for future use
-  const statusColors = ["#86efac", "#fca5a5", "#c4b5fd", "#fcd34d", "#d1d5db"];
+  // const statusColors = ["#86efac", "#fca5a5", "#c4b5fd", "#fcd34d", "#d1d5db"]; // Reserved for future use
 
   // const pieOptions = { // Reserved for future use
   //   labels: statusLabelsVi,
@@ -1029,6 +1092,16 @@ const Dashboard = () => {
               >
                 <span className="hidden md:inline">Xuất Dữ Liệu</span>
               </Button>
+
+              {/* Settings Button */}
+              <button
+                onClick={() => setShowSettingsPanel(true)}
+                className="flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-white backdrop-blur-sm transition-all hover:border-white/30 hover:bg-white/20"
+                title="Cài đặt hiển thị"
+              >
+                <CogIcon className="h-5 w-5" />
+                <span className="hidden md:inline">Cài đặt</span>
+              </button>
             </div>
           </motion.div>
 
@@ -1087,16 +1160,51 @@ const Dashboard = () => {
             </motion.div>
           ) : (
             <motion.div
-              className="overflow-x-auto overflow-y-visible rounded-3xl border border-white/10 bg-white/5 shadow-2xl backdrop-blur-xl"
+              className="table-scroll-container w-full overflow-x-auto overflow-y-visible rounded-3xl border border-white/10 bg-white/5 shadow-2xl backdrop-blur-xl"
               variants={itemVariants}
+              style={{
+                scrollbarWidth: "thin",
+                scrollbarColor: "rgba(255,255,255,0.3) transparent",
+                WebkitOverflowScrolling: "touch",
+              }}
             >
-              <table className="w-full min-w-[1200px] divide-y divide-white/10">
+              <style>
+                {`
+                  .table-scroll-container::-webkit-scrollbar {
+                    height: 10px;
+                  }
+                  .table-scroll-container::-webkit-scrollbar-track {
+                    background: rgba(255, 255, 255, 0.05);
+                    border-radius: 10px;
+                    margin: 8px;
+                  }
+                  .table-scroll-container::-webkit-scrollbar-thumb {
+                    background: rgba(255, 255, 255, 0.3);
+                    border-radius: 10px;
+                  }
+                  .table-scroll-container::-webkit-scrollbar-thumb:hover {
+                    background: rgba(255, 255, 255, 0.5);
+                  }
+                  .image-table th,
+                  .image-table td {
+                    white-space: nowrap;
+                  }
+                `}
+              </style>
+              <table
+                className="image-table divide-y divide-white/10"
+                style={{
+                  minWidth: "max-content",
+                  tableLayout: "auto",
+                  width: "100%",
+                }}
+              >
                 <thead className="bg-white/5 backdrop-blur-sm">
                   <tr>
-                    <th className="px-3 py-3 text-center text-xs font-bold uppercase tracking-wider text-white">
+                    <th className="whitespace-nowrap px-3 py-3 text-center text-xs font-bold uppercase tracking-wider text-white">
                       STT
                     </th>
-                    <th className="px-3 py-3">
+                    <th className="whitespace-nowrap px-3 py-3">
                       <button
                         onClick={handleSelectAll}
                         className="focus:outline-none"
@@ -1108,48 +1216,109 @@ const Dashboard = () => {
                       >
                         {selected.length === images.length &&
                         images.length > 0 ? (
-                          <MdCheckBox className="h-5 w-5 text-red-400 transition" />
+                          <motion.div
+                            initial={{ scale: 0.8 }}
+                            animate={{ scale: 1 }}
+                            transition={{
+                              type: "spring",
+                              stiffness: 400,
+                              damping: 17,
+                            }}
+                          >
+                            <CheckboxCheckedIcon className="h-5 w-5" />
+                          </motion.div>
                         ) : (
-                          <MdCheckBoxOutlineBlank className="h-5 w-5 text-white/50 transition hover:text-red-400" />
+                          <CheckboxUncheckedIcon className="h-5 w-5 text-gray-400 transition hover:text-white/70" />
                         )}
                       </button>
                     </th>
-                    <th
-                      className="cursor-pointer select-none px-3 py-3 text-left text-xs font-bold uppercase tracking-wider text-white transition-colors hover:text-white/80"
-                      onClick={() => handleSort("ImageName")}
-                    >
-                      Tên hình ảnh {sortIcon("ImageName", sortBy, sortDir)}
-                    </th>
-                    <th className="px-3 py-3 text-left text-xs font-bold uppercase tracking-wider text-white">
-                      Thư mục
-                    </th>
-                    <th
-                      className="cursor-pointer select-none px-3 py-3 text-left text-xs font-bold uppercase tracking-wider text-white transition-colors hover:text-white/80"
-                      onClick={() => handleSort("Status")}
-                    >
-                      Trạng thái {sortIcon("Status", sortBy, sortDir)}
-                    </th>
-                    <th
-                      className="cursor-pointer select-none px-3 py-3 text-left text-xs font-bold uppercase tracking-wider text-white transition-colors hover:text-white/80"
-                      onClick={() => handleSort("CreatedAt")}
-                    >
-                      Ngày tạo {sortIcon("CreatedAt", sortBy, sortDir)}
-                    </th>
-                    <th className="px-3 py-3 text-left text-xs font-bold uppercase tracking-wider text-white">
-                      Tải lên bởi
-                    </th>
-                    <th className="px-3 py-3 text-left text-xs font-bold uppercase tracking-wider text-white">
-                      Họ và Tên
-                    </th>
-                    <th className="px-3 py-3 text-left text-xs font-bold uppercase tracking-wider text-white">
-                      Điện thoại
-                    </th>
-                    <th className="px-3 py-3 text-left text-xs font-bold uppercase tracking-wider text-white">
-                      Email
-                    </th>
-                    <th className="px-3 py-3 text-left text-xs font-bold uppercase tracking-wider text-white">
-                      Trường THPT
-                    </th>
+                    {columnVisibility.imageName && (
+                      <th
+                        className="cursor-pointer select-none px-3 py-3 text-left text-xs font-bold uppercase tracking-wider text-white transition-colors hover:text-white/80"
+                        onClick={() => handleSort("ImageName")}
+                      >
+                        Tên hình ảnh {sortIcon("ImageName", sortBy, sortDir)}
+                      </th>
+                    )}
+                    {columnVisibility.folderPath && (
+                      <th className="px-3 py-3 text-left text-xs font-bold uppercase tracking-wider text-white">
+                        Thư mục
+                      </th>
+                    )}
+                    {columnVisibility.status && (
+                      <th
+                        className="cursor-pointer select-none px-3 py-3 text-left text-xs font-bold uppercase tracking-wider text-white transition-colors hover:text-white/80"
+                        onClick={() => handleSort("Status")}
+                      >
+                        Trạng thái {sortIcon("Status", sortBy, sortDir)}
+                      </th>
+                    )}
+                    {columnVisibility.createdAt && (
+                      <th
+                        className="cursor-pointer select-none px-3 py-3 text-left text-xs font-bold uppercase tracking-wider text-white transition-colors hover:text-white/80"
+                        onClick={() => handleSort("CreatedAt")}
+                      >
+                        Ngày tạo {sortIcon("CreatedAt", sortBy, sortDir)}
+                      </th>
+                    )}
+                    {columnVisibility.size && (
+                      <th
+                        className="cursor-pointer select-none px-3 py-3 text-left text-xs font-bold uppercase tracking-wider text-white transition-colors hover:text-white/80"
+                        onClick={() => handleSort("Size")}
+                      >
+                        Kích thước {sortIcon("Size", sortBy, sortDir)}
+                      </th>
+                    )}
+                    {columnVisibility.uploadBy && (
+                      <th className="px-3 py-3 text-left text-xs font-bold uppercase tracking-wider text-white">
+                        Tải lên bởi
+                      </th>
+                    )}
+                    {columnVisibility.hoVaTen && (
+                      <th className="px-3 py-3 text-left text-xs font-bold uppercase tracking-wider text-white">
+                        Họ và Tên
+                      </th>
+                    )}
+                    {columnVisibility.cccd && (
+                      <th className="px-3 py-3 text-left text-xs font-bold uppercase tracking-wider text-white">
+                        CCCD
+                      </th>
+                    )}
+                    {columnVisibility.dienThoai && (
+                      <th className="px-3 py-3 text-left text-xs font-bold uppercase tracking-wider text-white">
+                        Điện thoại
+                      </th>
+                    )}
+                    {columnVisibility.dienThoaiPhuHuynh && (
+                      <th className="px-3 py-3 text-left text-xs font-bold uppercase tracking-wider text-white">
+                        Điện thoại phụ huynh
+                      </th>
+                    )}
+                    {columnVisibility.email && (
+                      <th className="px-3 py-3 text-left text-xs font-bold uppercase tracking-wider text-white">
+                        Email
+                      </th>
+                    )}
+                    {columnVisibility.truongThpt && (
+                      <th className="px-3 py-3 text-left text-xs font-bold uppercase tracking-wider text-white">
+                        Trường THPT
+                      </th>
+                    )}
+                    {columnVisibility.lop && (
+                      <th className="px-3 py-3 text-left text-xs font-bold uppercase tracking-wider text-white">
+                        Lớp
+                      </th>
+                    )}
+                    {columnVisibility.tinh && (
+                      <th className="px-3 py-3 text-left text-xs font-bold uppercase tracking-wider text-white">
+                        Tỉnh
+                      </th>
+                    )}
+                    {columnVisibility.nganhXetTuyen && (
+                      <th className="px-3 py-3 text-left text-xs font-bold uppercase tracking-wider text-white">
+                        Ngành xét tuyển
+                      </th>
+                    )}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/10">
@@ -1183,91 +1352,168 @@ const Dashboard = () => {
                             }
                           >
                             {selected.includes(img.ImageName) ? (
-                              <MdCheckBox className="h-5 w-5 text-red-400 transition" />
+                              <motion.div
+                                initial={{ scale: 0.8 }}
+                                animate={{ scale: 1 }}
+                                transition={{
+                                  type: "spring",
+                                  stiffness: 400,
+                                  damping: 17,
+                                }}
+                              >
+                                <CheckboxCheckedIcon className="h-5 w-5" />
+                              </motion.div>
                             ) : (
-                              <MdCheckBoxOutlineBlank className="h-5 w-5 text-white/50 transition hover:text-red-400" />
+                              <CheckboxUncheckedIcon className="h-5 w-5 text-gray-400 transition hover:text-white/70" />
                             )}
                           </button>
                         </td>
-                        <td className="px-3 py-3">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleRowClick(img);
-                            }}
-                            className="text-left text-sm font-medium text-blue-400 transition-colors hover:text-blue-300 hover:underline"
-                          >
-                            {img.ImageName}
-                          </button>
-                        </td>
-                        <td className="px-3 py-3">
-                          {img.FolderPath ? (
-                            <span className="inline-flex items-center gap-1 rounded-lg border border-white/20 bg-white/10 px-2 py-1 text-xs font-medium text-white/80 backdrop-blur-sm">
-                              <svg
-                                className="h-3 w-3"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
-                                />
-                              </svg>
-                              {img.FolderPath}
+                        {columnVisibility.imageName && (
+                          <td className="px-3 py-3">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRowClick(img);
+                              }}
+                              className="text-left text-sm font-medium text-blue-400 transition-colors hover:text-blue-300 hover:underline"
+                            >
+                              {img.ImageName}
+                            </button>
+                          </td>
+                        )}
+                        {columnVisibility.folderPath && (
+                          <td className="px-3 py-3">
+                            {img.FolderPath ? (
+                              <span className="inline-flex items-center gap-1 rounded-lg border border-white/20 bg-white/10 px-2 py-1 text-xs font-medium text-white/80 backdrop-blur-sm">
+                                <svg
+                                  className="h-3 w-3"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
+                                  />
+                                </svg>
+                                {img.FolderPath}
+                              </span>
+                            ) : (
+                              <span className="text-xs text-white/50">Gốc</span>
+                            )}
+                          </td>
+                        )}
+                        {columnVisibility.status && (
+                          <td className="px-3 py-3">
+                            <span
+                              className={`inline-block rounded-full border px-3 py-1 text-xs font-bold shadow-sm ${statusColor(
+                                img.Status
+                              )}`}
+                            >
+                              {translateStatus(img.Status)}
                             </span>
-                          ) : (
-                            <span className="text-xs text-white/50">Gốc</span>
-                          )}
-                        </td>
-                        <td className="px-3 py-3">
-                          <span
-                            className={`inline-block rounded-full border px-3 py-1 text-xs font-bold shadow-sm ${statusColor(
-                              img.Status
-                            )}`}
+                          </td>
+                        )}
+                        {columnVisibility.createdAt && (
+                          <td className="whitespace-nowrap px-3 py-3 text-xs text-white/70">
+                            {formatDate(img.CreatedAt)}
+                          </td>
+                        )}
+                        {columnVisibility.size && (
+                          <td className="px-3 py-3 text-xs text-white/70">
+                            {img.Size ? `${img.Size} MB` : "-"}
+                          </td>
+                        )}
+                        {columnVisibility.uploadBy && (
+                          <td className="px-3 py-3">
+                            {img.UploadBy ? (
+                              <span className="inline-flex items-center gap-1 rounded-lg border border-blue-400/30 bg-blue-500/20 px-2 py-1 text-xs font-medium text-blue-300 backdrop-blur-sm">
+                                <svg
+                                  className="h-3 w-3"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                                  />
+                                </svg>
+                                {img.UploadBy}
+                              </span>
+                            ) : (
+                              <span className="text-xs text-white/50">-</span>
+                            )}
+                          </td>
+                        )}
+                        {columnVisibility.hoVaTen && (
+                          <td className="px-3 py-3 text-sm text-white/80">
+                            {extracted.ho_va_ten || "-"}
+                          </td>
+                        )}
+                        {columnVisibility.cccd && (
+                          <td className="px-3 py-3 text-sm text-white/80">
+                            {extracted.cccd || "-"}
+                          </td>
+                        )}
+                        {columnVisibility.dienThoai && (
+                          <td className="px-3 py-3 text-sm text-white/80">
+                            {extracted.dien_thoai || "-"}
+                          </td>
+                        )}
+                        {columnVisibility.dienThoaiPhuHuynh && (
+                          <td className="px-3 py-3 text-sm text-white/80">
+                            {extracted.dien_thoai_phu_huynh || "-"}
+                          </td>
+                        )}
+                        {columnVisibility.email && (
+                          <td className="px-3 py-3 text-sm text-white/80">
+                            {extracted.email || "-"}
+                          </td>
+                        )}
+                        {columnVisibility.truongThpt && (
+                          <td className="px-3 py-3 text-sm text-white/80">
+                            {extracted.truong_thpt || "-"}
+                          </td>
+                        )}
+                        {columnVisibility.lop && (
+                          <td className="px-3 py-3 text-sm text-white/80">
+                            {extracted.lop || "-"}
+                          </td>
+                        )}
+                        {columnVisibility.tinh && (
+                          <td className="px-3 py-3 text-sm text-white/80">
+                            {extracted.tinh || "-"}
+                          </td>
+                        )}
+                        {columnVisibility.nganhXetTuyen && (
+                          <td
+                            className="px-3 py-3 text-sm text-white/80"
+                            style={{ whiteSpace: "normal", minWidth: "200px" }}
                           >
-                            {translateStatus(img.Status)}
-                          </span>
-                        </td>
-                        <td className="whitespace-nowrap px-3 py-3 text-xs text-white/70">
-                          {formatDate(img.CreatedAt)}
-                        </td>
-                        <td className="px-3 py-3">
-                          {img.UploadBy ? (
-                            <span className="inline-flex items-center gap-1 rounded-lg border border-blue-400/30 bg-blue-500/20 px-2 py-1 text-xs font-medium text-blue-300 backdrop-blur-sm">
-                              <svg
-                                className="h-3 w-3"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                                />
-                              </svg>
-                              {img.UploadBy}
-                            </span>
-                          ) : (
-                            <span className="text-xs text-white/50">-</span>
-                          )}
-                        </td>
-                        <td className="px-3 py-3 text-sm text-white/80">
-                          {extracted.ho_va_ten || "-"}
-                        </td>
-                        <td className="px-3 py-3 text-sm text-white/80">
-                          {extracted.dien_thoai || "-"}
-                        </td>
-                        <td className="px-3 py-3 text-sm text-white/80">
-                          {extracted.email || "-"}
-                        </td>
-                        <td className="px-3 py-3 text-sm text-white/80">
-                          {extracted.truong_thpt || "-"}
-                        </td>
+                            {extracted.nganh_xet_tuyen &&
+                            Array.isArray(extracted.nganh_xet_tuyen) ? (
+                              <div className="flex flex-wrap gap-1">
+                                {extracted.nganh_xet_tuyen
+                                  .filter(Boolean)
+                                  .map((nganh, idx) => (
+                                    <span
+                                      key={idx}
+                                      className="inline-flex items-center whitespace-nowrap rounded-lg border border-purple-400/30 bg-purple-500/20 px-2 py-1 text-xs font-medium text-purple-300 backdrop-blur-sm"
+                                    >
+                                      {nganh}
+                                    </span>
+                                  ))}
+                              </div>
+                            ) : (
+                              "-"
+                            )}
+                          </td>
+                        )}
                       </tr>
                     );
                   })}
@@ -1362,6 +1608,214 @@ const Dashboard = () => {
             </motion.div>
           )}
         </div>
+
+        {/* Settings Panel */}
+        {typeof window !== "undefined" &&
+          createPortal(
+            <AnimatePresence>
+              {showSettingsPanel && (
+                <>
+                  {/* Backdrop */}
+                  <motion.div
+                    className="fixed inset-0 z-[9998] backdrop-blur-md"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    onClick={() => setShowSettingsPanel(false)}
+                  >
+                    <div className="bg-black/60 absolute inset-0" />
+                  </motion.div>
+                  {/* Settings Panel */}
+                  <motion.div
+                    className="fixed right-0 top-0 z-[9999] h-full w-full max-w-2xl overflow-y-auto border-l border-white/20 bg-gray-800/50 shadow-2xl backdrop-blur-xl"
+                    initial={{ x: "100%" }}
+                    animate={{ x: 0 }}
+                    exit={{ x: "100%" }}
+                    transition={{ type: "spring", damping: 30, stiffness: 300 }}
+                    onClick={(e) => e.stopPropagation()}
+                    style={{
+                      scrollbarWidth: "thin",
+                      scrollbarColor: "rgba(255,255,255,0.3) transparent",
+                    }}
+                  >
+                    {/* Header */}
+                    <motion.div
+                      className="sticky top-0 z-10 flex items-center justify-between border-b border-white/10 bg-gray-800/10 px-6 py-4 backdrop-blur-sm"
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <div className="flex items-center gap-3">
+                        <motion.div
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{
+                            type: "spring",
+                            stiffness: 200,
+                            damping: 15,
+                          }}
+                          className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/20 bg-white/10 backdrop-blur-sm"
+                        >
+                          <CogIcon className="h-5 w-5 text-white" />
+                        </motion.div>
+                        <div>
+                          <BlurText
+                            text="Cài đặt"
+                            animateBy="words"
+                            direction="top"
+                            delay={100}
+                            className="text-xl font-bold leading-normal text-white"
+                          />
+                          <p className="mt-1 text-sm text-white/70">
+                            Tùy chỉnh hiển thị cột trong bảng
+                          </p>
+                        </div>
+                      </div>
+                      <motion.div
+                        whileHover={{ scale: 1.1, rotate: 90 }}
+                        whileTap={{ scale: 0.9 }}
+                        transition={{
+                          type: "spring",
+                          stiffness: 400,
+                          damping: 17,
+                        }}
+                      >
+                        <button
+                          onClick={() => setShowSettingsPanel(false)}
+                          className="rounded-full border border-white/20 bg-white/10 p-2 text-white/70 transition-colors hover:bg-white/20 hover:text-white"
+                        >
+                          <XMarkIcon className="h-6 w-6" />
+                        </button>
+                      </motion.div>
+                    </motion.div>
+
+                    <div className="p-6">
+                      {/* Column Visibility Settings */}
+                      <motion.div
+                        className="mb-6 rounded-2xl border border-white/20 bg-gray-800/30 p-6 shadow-lg backdrop-blur-sm"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3, delay: 0.1 }}
+                      >
+                        <div className="mb-6 flex items-center justify-between">
+                          <div>
+                            <h3 className="text-lg font-bold text-white">
+                              Hiển thị cột trong bảng
+                            </h3>
+                            <p className="mt-1 text-sm text-white/70">
+                              Chọn các cột bạn muốn hiển thị trong bảng "Danh
+                              sách hình ảnh chi tiết"
+                            </p>
+                          </div>
+                          <motion.div
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                          >
+                            <Button
+                              onClick={resetToDefault}
+                              variant="secondary"
+                              size="md"
+                              className="border border-white/20 bg-white/10 text-white hover:bg-white/20"
+                              leftIcon={<MdRefresh className="h-5 w-5" />}
+                            >
+                              Đặt lại
+                            </Button>
+                          </motion.div>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-3">
+                          {[
+                            {
+                              key: "imageName",
+                              label: "Tên hình ảnh",
+                              icon: "📷",
+                            },
+                            { key: "folderPath", label: "Thư mục", icon: "📁" },
+                            { key: "status", label: "Trạng thái", icon: "✓" },
+                            { key: "createdAt", label: "Ngày tạo", icon: "📅" },
+                            { key: "size", label: "Kích thước", icon: "💾" },
+                            {
+                              key: "uploadBy",
+                              label: "Tải lên bởi",
+                              icon: "👤",
+                            },
+                            { key: "hoVaTen", label: "Họ và Tên", icon: "✍️" },
+                            { key: "cccd", label: "CCCD", icon: "🆔" },
+                            {
+                              key: "dienThoai",
+                              label: "Điện thoại",
+                              icon: "📞",
+                            },
+                            {
+                              key: "dienThoaiPhuHuynh",
+                              label: "Điện thoại phụ huynh",
+                              icon: "📱",
+                            },
+                            { key: "email", label: "Email", icon: "✉️" },
+                            {
+                              key: "truongThpt",
+                              label: "Trường THPT",
+                              icon: "🏫",
+                            },
+                            { key: "lop", label: "Lớp", icon: "📚" },
+                            { key: "tinh", label: "Tỉnh", icon: "📍" },
+                            {
+                              key: "nganhXetTuyen",
+                              label: "Ngành xét tuyển",
+                              icon: "🎓",
+                            },
+                          ].map((column) => {
+                            const isChecked =
+                              columnVisibility[column.key] || false;
+                            return (
+                              <motion.label
+                                key={column.key}
+                                className="flex cursor-pointer items-center space-x-3 rounded-xl border border-white/20 bg-white/5 p-3 transition-all hover:border-white/30 hover:bg-white/10"
+                                whileHover={{ scale: 1.02 }}
+                                whileTap={{ scale: 0.98 }}
+                                transition={{
+                                  type: "spring",
+                                  stiffness: 400,
+                                  damping: 17,
+                                }}
+                              >
+                                {isChecked ? (
+                                  <motion.div
+                                    initial={{ scale: 0.8 }}
+                                    animate={{ scale: 1 }}
+                                    transition={{
+                                      type: "spring",
+                                      stiffness: 400,
+                                      damping: 17,
+                                    }}
+                                  >
+                                    <CheckboxCheckedIcon className="h-5 w-5" />
+                                  </motion.div>
+                                ) : (
+                                  <CheckboxUncheckedIcon className="h-5 w-5 text-gray-400" />
+                                )}
+                                <input
+                                  type="checkbox"
+                                  checked={isChecked}
+                                  onChange={() => toggleColumn(column.key)}
+                                  className="sr-only"
+                                />
+                                <span className="text-xl">{column.icon}</span>
+                                <span className="text-sm font-medium text-white">
+                                  {column.label}
+                                </span>
+                              </motion.label>
+                            );
+                          })}
+                        </div>
+                      </motion.div>
+                    </div>
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>,
+            document.body
+          )}
 
         {/* Image Detail Dialog */}
         {showImageDialog && selectedImage && (

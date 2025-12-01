@@ -5,6 +5,7 @@ import Sidebar from "components/sidebar";
 import Footer from "components/footer/Footer";
 import routes from "routes.js";
 import { ImageManagementProvider } from "contexts/ImageManagementContext";
+import { SettingsProvider } from "contexts/SettingsContext";
 import DarkVeil from "components/backgrounds/DarkVeil";
 
 export default function Admin(props) {
@@ -60,8 +61,9 @@ export default function Admin(props) {
 
   document.documentElement.dir = "ltr";
   return (
-    <ImageManagementProvider>
-      {/* DarkVeil Background Animation for all pages */}
+    <SettingsProvider>
+      <ImageManagementProvider>
+        {/* DarkVeil Background Animation for all pages */}
       <div className="bg-black fixed inset-0 z-0">
         <DarkVeil
           speed={0.5}
@@ -107,6 +109,7 @@ export default function Admin(props) {
           </main>
         </div>
       </div>
-    </ImageManagementProvider>
+      </ImageManagementProvider>
+    </SettingsProvider>
   );
 }
