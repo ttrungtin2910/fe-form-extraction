@@ -37,7 +37,10 @@ const FolderCard = ({ path, currentFolder, onNavigate, onRefresh }) => {
           : [];
         const folderData = await apiFE.images.getFolders();
         const allFolders = folderData.folders || [];
-        const subFolders = allFolders.filter((f) => f.startsWith(path + "/"));
+        const subFolders = allFolders.filter((f) => {
+          const folderPath = typeof f === 'string' ? f : f?.FolderPath;
+          return typeof folderPath === 'string' && folderPath.startsWith(path + "/");
+        });
         if (mounted) {
           setImgCount(images.length);
           setFolderCount(subFolders.length);

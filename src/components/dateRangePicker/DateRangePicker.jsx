@@ -54,10 +54,12 @@ const DateRangePicker = ({ startDate, endDate, onChange, className = "" }) => {
     if (!isOpen || !buttonRef.current) return;
 
     const updatePosition = () => {
+      if (!buttonRef.current) return;
       const rect = buttonRef.current.getBoundingClientRect();
+      // For fixed positioning, use viewport coordinates (no scrollY/scrollX)
       setDropdownPosition({
-        top: rect.bottom + window.scrollY + 2,
-        left: rect.left + window.scrollX,
+        top: rect.bottom + 2, // 2px gap below button
+        left: rect.left,
         width: rect.width,
       });
     };
@@ -65,7 +67,7 @@ const DateRangePicker = ({ startDate, endDate, onChange, className = "" }) => {
     // Initial position
     updatePosition();
 
-    // Update position on scroll
+    // Update position on scroll and resize - use capture phase to catch all scroll events
     window.addEventListener("scroll", updatePosition, true);
     window.addEventListener("resize", updatePosition);
 
