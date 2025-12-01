@@ -77,12 +77,15 @@ const ImageZoomViewer = ({ image, title }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const imgRef = useRef(null);
+  const containerRef = useRef(null);
 
   const handleZoomChange = (newZoom) => {
     const zoomValue = parseFloat(newZoom);
+    const prevZoom = zoom;
     setZoom(zoomValue);
     // Reset position when zoom changes significantly
-    if (Math.abs(zoomValue - zoom) > 0.5) {
+    if (Math.abs(zoomValue - prevZoom) > 0.5) {
       setPosition({ x: 0, y: 0 });
     }
   };
@@ -93,6 +96,10 @@ const ImageZoomViewer = ({ image, title }) => {
   };
 
   const handleMouseDown = (e) => {
+    // Don't handle drag if clicking on zoom controls
+    if (e.target.closest("[data-zoom-controls]")) {
+      return;
+    }
     if (zoom > 1) {
       setIsDragging(true);
       setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
@@ -158,26 +165,73 @@ const ImageZoomViewer = ({ image, title }) => {
           onMouseLeave={handleMouseUp}
           onWheel={handleWheel}
         >
-          <motion.img
-            src={image}
-            alt="Preview"
-            className="h-full w-full object-contain"
+          <div
+            ref={containerRef}
+            className="absolute inset-0"
             style={{
-              transform: `scale(${zoom}) translate(${position.x / zoom}px, ${
-                position.y / zoom
-              }px)`,
-              cursor: zoom > 1 ? (isDragging ? "grabbing" : "grab") : "default",
+              transform: `translate(${position.x}px, ${position.y}px)`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
             }}
-            draggable={false}
-            whileHover={{ scale: zoom === 1 ? 1.02 : 1 }}
-            transition={{ duration: 0.2 }}
-          />
+          >
+            <img
+              ref={imgRef}
+              src={image}
+              alt="Preview"
+              className="pointer-events-auto"
+              style={{
+                maxHeight: "100%",
+                maxWidth: "100%",
+                height: "auto",
+                width: "auto",
+                objectFit: "contain",
+                transform: `scale(${zoom})`,
+                transformOrigin: "center center",
+                cursor:
+                  zoom > 1 ? (isDragging ? "grabbing" : "grab") : "default",
+                willChange: "transform",
+              }}
+              draggable={false}
+              onLoad={(e) => {
+                // Store natural dimensions for proper scaling
+                const img = e.target;
+                if (imgRef.current && containerRef.current) {
+                  const container = containerRef.current;
+                  const containerWidth = container.clientWidth;
+                  const containerHeight = container.clientHeight;
+
+                  // Calculate fit size
+                  const imgAspect = img.naturalWidth / img.naturalHeight;
+                  const containerAspect = containerWidth / containerHeight;
+
+                  let fitWidth, fitHeight;
+                  if (imgAspect > containerAspect) {
+                    fitWidth = containerWidth;
+                    fitHeight = containerWidth / imgAspect;
+                  } else {
+                    fitHeight = containerHeight;
+                    fitWidth = containerHeight * imgAspect;
+                  }
+
+                  // Set explicit dimensions for proper scaling
+                  img.style.width = `${fitWidth}px`;
+                  img.style.height = `${fitHeight}px`;
+                  img.style.maxWidth = "none";
+                  img.style.maxHeight = "none";
+                }
+              }}
+            />
+          </div>
 
           {/* Zoom Controls */}
           <div
+            data-zoom-controls
             className="absolute bottom-4 left-4 right-4 z-10 flex flex-col items-center gap-3 opacity-100"
             onClick={(e) => e.stopPropagation()}
             onMouseDown={(e) => e.stopPropagation()}
+            onMouseMove={(e) => e.stopPropagation()}
+            onMouseUp={(e) => e.stopPropagation()}
           >
             {/* Zoom Slider */}
             <motion.div
@@ -198,6 +252,10 @@ const ImageZoomViewer = ({ image, title }) => {
                   step="0.1"
                   value={zoom}
                   onChange={(e) => handleZoomChange(e.target.value)}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onMouseMove={(e) => e.stopPropagation()}
+                  onMouseUp={(e) => e.stopPropagation()}
+                  onClick={(e) => e.stopPropagation()}
                   className="zoom-slider flex-1 cursor-pointer"
                   style={{
                     background: `linear-gradient(to right, #ffffff 0%, #ffffff ${
